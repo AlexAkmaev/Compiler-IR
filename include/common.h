@@ -56,9 +56,6 @@ public:
     InstrArg(Type type, vreg_t num) : num_(num), type_(type) {}
 
     [[nodiscard]] vreg_t num() const {
-        if (type_ != Type::a || type_ != Type::v) {
-            std::cerr << "Incorrect operand\n";
-        }
         return num_;
     }
 

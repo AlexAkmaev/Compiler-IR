@@ -19,6 +19,7 @@ BasicBlock BasicBlock::MakeBasicBlock(const std::vector<Instruction *> &instrs) 
         prev->SetNext(curr);
         curr->SetPrev(prev);
         curr->SetBasicBlock(&bb);
+        prev = curr;
     }
     bb.SetLastInstr(instrs.back());
     return bb;

@@ -31,6 +31,8 @@ public:
         return end_;
     }
 
+    void SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs);
+
     void SetParamsNum(uint8_t params_num) {
         params_num_ = params_num;
     }

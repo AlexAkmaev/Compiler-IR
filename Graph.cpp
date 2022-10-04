@@ -8,6 +8,12 @@ Graph::Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num) : root_(root
     }
 }
 
+void Graph::SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs) {
+    for (auto bb : bbs) {
+        bb->SetGraph(this);
+    }
+}
+
 void Graph::AddLabel(const std::string &label) {
     auto it = label_table_.find(label);
     if (it == label_table_.end()) {

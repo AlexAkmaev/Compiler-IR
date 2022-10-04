@@ -13,9 +13,9 @@ FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
-set(BasicTests basic_tests.cpp)
+set(BASIC_TEST_SOURCES basic_tests.cpp ${PROJECT_SOURCE_DIR}/Graph.cpp ${PROJECT_SOURCE_DIR}/BasicBlock.cpp)
 
-add_executable(basics_tests ${BasicTests})
+add_executable(basics_tests ${BASIC_TEST_SOURCES})
 target_include_directories(basics_tests
     PUBLIC ${PROJECT_SOURCE_DIR}/include
 )

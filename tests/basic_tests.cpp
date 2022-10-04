@@ -34,7 +34,7 @@ TEST(basic_tests, example) {
 
     Instruction cmp{Opcode::CMP, U64, {{v, 1}, {v, 2}}, ""};
     Instruction ja{Opcode::JA, U64, {}, "done"};
-    BasicBlock bb1 = BasicBlock::MakeBasicBlock({&ja, &cmp});
+    BasicBlock bb1 = BasicBlock::MakeBasicBlock({&cmp, &ja});
 
     Instruction mul{Opcode::MUL, U64, {{v, 0}, {v, 0}, {v, 1}}, ""};
     Instruction addi{Opcode::ADDI, U64, {{v, 1}, {v, 1}, {imm, 1}}, ""};
@@ -60,11 +60,12 @@ TEST(basic_tests, example) {
     bb_end.AddToPreds({&bb3});
 
     Graph graph{&bb0, &bb_end, 1};
+    graph.SetGraphForBasicBlocks({&bb0, &bb1, &bb2, &bb3, &bb_end});
     
     // Testing
 
     ASSERT_EQ(movi1.GetPrev(), nullptr);
-    ASSERT_EQ(movi1.GetNext(), &movi1);
+    ASSERT_EQ(movi1.GetNext(), &movi2);
     ASSERT_EQ(movi2.GetPrev(), &movi1);
     ASSERT_EQ(movi2.GetNext(), &u32tou64);
     ASSERT_EQ(u32tou64.GetPrev(), &movi2);

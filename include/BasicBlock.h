@@ -15,6 +15,14 @@ public:
 
     static BasicBlock MakeBasicBlock(const std::vector<Instruction *> &instrs);
 
+    void SetGraph(Graph *graph) {
+        graph_ = graph;
+    }
+
+    Graph *GetGraph() {
+        return graph_;
+    }
+
     void SetFirstInstr(Instruction *first_instr) {
         first_instr_ = first_instr;
     }

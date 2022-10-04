@@ -31,7 +31,7 @@ The IR has the following implementation:
 - `next`         : Next instruction
 - `args`         : Virtual regs as arguments
 - `id`           : Target and label ids
-- `bb`           : BasicBlock that contains this instruction
+- `bb`           : BasicBlock that contains this instruction  
 To build an instruction pass op, type, args, id to ctor. Also prev and next can be passed to ctor or can be set up by setters.
 #### BasicBlock
 - `first_instr`  : Pointer to the first instruction in the basic block
@@ -39,7 +39,7 @@ To build an instruction pass op, type, args, id to ctor. Also prev and next can 
 - `first_phi`    : Pointer to the first phi instruction in the basic block
 - `preds`        : Vector of predecessors to basic block
 - `succs`        : Vector of successors to basic block
-- `graph`        : Pointer to current graph
+- `graph`        : Pointer to current graph  
 To build a basic block pass first_instr and last_instr to ctor or set them up by setters.
 #### Graph
 - `root`         : Pointer to the beginning basic block in the graph
@@ -47,5 +47,5 @@ To build a basic block pass first_instr and last_instr to ctor or set them up by
 - `params_num`   : Number of function parameters
 - `label_table`  : Table of label targets for indexing
 - `jump_table`   : Table of targets as `Instruction` pointers
-- `vreg_table`   : Table of virtual regs values
+- `vreg_table`   : Table of virtual regs values  
 To build a graph pass root, end and params_num parameters to ctor.
