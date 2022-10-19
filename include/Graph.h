@@ -13,7 +13,8 @@ class BasicBlock;
 
 class Graph final {
 public:
-    explicit Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num);
+    explicit Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num) : root_(root), end_(end),
+                                                                            params_num_(params_num), blocks_num_{2} {}
 
     void SetRoot(BasicBlock *root) {
         root_ = root;
@@ -41,6 +42,14 @@ public:
         return params_num_;
     }
 
+    void IncreaseBlocksNum() {
+        ++blocks_num_;
+    }
+
+    size_t GetBlocksNum() const {
+        return blocks_num_;
+    }
+
     void AddLabel(const std::string &label);
 
     std::optional<size_t> GetLabelId(const std::string &label);
@@ -49,17 +58,13 @@ public:
 
     std::optional<Instruction *> GetTargetInstr(const std::string &label);
 
-    void AddVReg(InstrArg::Type type, vreg_t num, size_t value);
-
-    std::optional<size_t> GetVRegValue(InstrArg::Type type, vreg_t num);
-
 private:
     BasicBlock *root_;
     BasicBlock *end_;
     uint8_t params_num_;
+    size_t blocks_num_{0};
     std::unordered_map<std::string, size_t> label_table_;
     std::unordered_map<std::string, Instruction *> jump_table_;
-    std::unordered_map<InstrArg, size_t, hash_instr_arg> vreg_table_;
 };
 
 }  // namespace compiler

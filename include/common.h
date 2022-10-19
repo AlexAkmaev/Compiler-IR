@@ -11,6 +11,7 @@ using vreg_t = uint16_t;
 
 enum class Opcode : uint8_t {
     NONE,
+    PHI,
     CAST,
     ADDI,
     ADD,

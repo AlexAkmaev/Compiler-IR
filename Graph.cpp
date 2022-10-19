@@ -2,12 +2,6 @@
 
 namespace compiler {
 
-Graph::Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num) : root_(root), end_(end), params_num_(params_num) {
-    for (size_t i = 0; i < params_num; ++i) {
-        vreg_table_.emplace(InstrArg{InstrArg::Type::a, static_cast<vreg_t>(i)}, 0);
-    }
-}
-
 void Graph::SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs) {
     for (auto bb : bbs) {
         bb->SetGraph(this);
@@ -41,17 +35,4 @@ std::optional<Instruction *> Graph::GetTargetInstr(const std::string &label) {
     return {};
 }
 
-void Graph::AddVReg(InstrArg::Type type, vreg_t num, size_t value) {
-    vreg_table_.emplace(InstrArg{type, num}, value);
-}
-
-std::optional<size_t> Graph::GetVRegValue(InstrArg::Type type, vreg_t num) {
-    InstrArg arg{type, num};
-    auto it = vreg_table_.find(arg);
-    if (it != vreg_table_.end()) {
-        return vreg_table_.at(arg);
-    }
-    return {};
-}
-
-}
+}  // namespace compiler

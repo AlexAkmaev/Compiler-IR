@@ -13,6 +13,9 @@ public:
     explicit BasicBlock(Instruction *first_instr, Instruction *last_instr) : first_instr_(first_instr),
                                                                              last_instr_(last_instr) {}
 
+    BasicBlock(Graph *graph);
+    explicit BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph);
+
     static BasicBlock MakeBasicBlock(const std::vector<Instruction *> &instrs);
 
     void SetGraph(Graph *graph) {
@@ -39,12 +42,20 @@ public:
         return last_instr_;
     }
 
-    void SetFirstPhi(Instruction *first_phi) {
+    void SetFirstPhi(PhiInstruction *first_phi) {
         first_phi_ = first_phi;
     }
 
-    Instruction *GetFirstPhi() {
+    PhiInstruction *GetFirstPhi() {
         return first_phi_;
+    }
+
+    void SetId(size_t id) {
+        id_ = id;
+    }
+
+    size_t GetId() {
+        return id_;
     }
 
     void AddToPreds(std::initializer_list<BasicBlock *> bbs) {
@@ -64,9 +75,11 @@ public:
     }
 
 private:
+    size_t id_{static_cast<size_t>(-1)};
+
     Instruction *first_instr_{nullptr};
     Instruction *last_instr_{nullptr};
-    Instruction *first_phi_{nullptr};
+    PhiInstruction *first_phi_{nullptr};
 
     std::vector<BasicBlock *> preds_;
     std::vector<BasicBlock *> succs_;

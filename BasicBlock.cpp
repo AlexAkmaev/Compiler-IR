@@ -1,6 +1,20 @@
 #include "BasicBlock.h"
+#include "Graph.h"
 
 namespace compiler {
+
+BasicBlock::BasicBlock(Graph *graph) {
+    graph_ = graph;
+    id_ = graph_->GetBlocksNum();
+    graph_->IncreaseBlocksNum();
+}
+
+BasicBlock::BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph) : first_instr_(first_instr),
+                                                                            last_instr_(last_instr) {
+    graph_ = graph;
+    id_ = graph_->GetBlocksNum();
+    graph_->IncreaseBlocksNum();
+}
 
 BasicBlock BasicBlock::MakeBasicBlock(const std::vector<Instruction *> &instrs) {
     BasicBlock bb;
@@ -11,6 +25,7 @@ BasicBlock BasicBlock::MakeBasicBlock(const std::vector<Instruction *> &instrs) 
     bb.SetFirstInstr(prev);
     prev->SetBasicBlock(&bb);
     if (instrs.size() == 1) {
+        bb.SetLastInstr(prev);
         return bb;
     }
     Instruction *curr;

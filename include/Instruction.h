@@ -10,18 +10,18 @@ namespace compiler {
 
 class BasicBlock;
 
-class Instruction final {
+class Instruction {
 public:
     explicit Instruction(Opcode op) : op_(op) {}
 
-    Instruction(Opcode op, InstrType type, std::vector<InstrArg> args, std::string id) : op_(op),
-                                                                                         type_(type),
-                                                                                         args_(std::move(args)),
-                                                                                         id_(std::move(id)) {}
+    Instruction(Opcode op, InstrType type, std::vector<InstrArg> args, size_t id) : op_(op),
+                                                                                    type_(type),
+                                                                                    args_(std::move(args)),
+                                                                                    id_(id) {}
 
-    Instruction(Opcode op, InstrType type, std::vector<InstrArg> args, std::string id,
+    Instruction(Opcode op, InstrType type, std::vector<InstrArg> args, size_t id,
                 Instruction *prev,
-                Instruction *next) : op_(op), type_(type), args_(std::move(args)), id_(std::move(id)), prev_(prev),
+                Instruction *next) : op_(op), type_(type), args_(std::move(args)), id_(id), prev_(prev),
                                      next_(next) {}
 
     void SetArgs(const std::vector<InstrArg> &args) {
@@ -32,11 +32,11 @@ public:
         return args_;
     }
 
-    void SetId(const std::string &id) {
+    void SetId(size_t id) {
         id_ = id;
     }
 
-    std::string GetId() {
+    size_t GetId() {
         return id_;
     }
 
@@ -72,17 +72,45 @@ public:
         return bb_;
     }
 
-private:
+protected:
     Opcode op_{Opcode::NONE};
     InstrType type_{InstrType::I32};
 
     std::vector<InstrArg> args_;
-    std::string id_;
+    size_t id_;
 
     Instruction *prev_{nullptr};
     Instruction *next_{nullptr};
 
+    std::vector<Instruction *> uses_;
+
     BasicBlock *bb_{nullptr};
+
+private:
+    Instruction *def_;
+};
+
+class PhiInstruction final : public Instruction {
+public:
+    template<typename... Defs>
+    static PhiInstruction CreatePhi(InstrType type, size_t id, Defs... defs) {
+        return PhiInstruction(type, id, std::vector<Instruction *>{{defs...}});
+    }
+
+    template<typename... Defs>
+    static PhiInstruction CreatePhi(InstrType type, size_t id, Instruction *prev, Instruction *next, Defs... defs) {
+        return PhiInstruction(type, id, prev, next, std::vector<Instruction *>{{defs...}});
+    }
+
+private:
+    PhiInstruction(InstrType type, size_t id, std::vector<Instruction *> &&defs) : Instruction(Opcode::PHI, type, {},
+                                                                                               id),
+                                                                                   defs_(std::move(defs)) {}
+
+    PhiInstruction(InstrType type, size_t id, Instruction *prev, Instruction *next, std::vector<Instruction *> &&defs)
+            : Instruction(Opcode::PHI, type, {}, id, prev, next), defs_(std::move(defs)) {}
+
+    std::vector<Instruction *> defs_;
 };
 
 }  // namespace compiler
