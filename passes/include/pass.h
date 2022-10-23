@@ -2,10 +2,14 @@
 #define OPTIMIZER_PASS_H
 
 #include <unordered_set>
+#include <set>
 
 #include "Graph.h"
 
 namespace compiler::passes {
+
+using IdSet = std::unordered_set<size_t>;
+using BlocksVector = std::vector<BasicBlock *>;
 
 class Pass {
 public:
@@ -23,13 +27,29 @@ public:
     bool Run() override;
     ~Traversal() override = default;
 
-    std::vector<BasicBlock *> getDFS();
-    std::vector<BasicBlock *> getRPO();
+    BlocksVector getDFS(bool need_to_rerun = false);
+    BlocksVector getRPO(bool need_to_rerun = false);
 
 private:
-    bool dfsWalk(BasicBlock *bb, std::unordered_set<size_t> &discovered_bbs);
+    bool dfsWalk(BasicBlock *bb, IdSet &discovered_bbs);
 
-    std::vector<BasicBlock *> dfs_bbs_;
+    BlocksVector dfs_bbs_;
+};
+
+class DomTree final : public Pass {
+public:
+    explicit DomTree(Graph *graph, bool is_slow) : Pass(graph), is_slow_(is_slow) {}
+    bool Run() override;
+    ~DomTree() override = default;
+private:
+    bool SlowDomTree();
+    bool FastDomTree();
+
+    std::set<size_t> CalcDifference(Graph graph, size_t rm_id, const std::set<size_t> &ids);
+
+    std::set<size_t> CollectIds(const BlocksVector &bbs);
+
+    bool is_slow_{false};
 };
 
 }  // namespace compiler::passes

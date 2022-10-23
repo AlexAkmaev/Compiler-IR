@@ -66,6 +66,14 @@ public:
         succs_.insert(succs_.end(), bbs.begin(), bbs.end());
     }
 
+    void AddToDoms(std::initializer_list<BasicBlock *> bbs) {
+        dom_blocks_.insert(dom_blocks_.end(), bbs.begin(), bbs.end());
+    }
+
+    void RemoveFromSuccs(size_t id);
+
+    void RemoveFromPreds(size_t id);
+
     [[nodiscard]] std::vector<BasicBlock *> GetPreds() const {
         return preds_;
     }
@@ -83,6 +91,9 @@ private:
 
     std::vector<BasicBlock *> preds_;
     std::vector<BasicBlock *> succs_;
+
+    std::vector<BasicBlock *> dom_blocks_;
+    BasicBlock *imm_dom_;
 
     Graph *graph_;
 };

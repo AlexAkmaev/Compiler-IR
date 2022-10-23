@@ -1,5 +1,6 @@
 #include "BasicBlock.h"
 #include "Graph.h"
+#include <algorithm>
 
 namespace compiler {
 
@@ -38,6 +39,18 @@ BasicBlock BasicBlock::MakeBasicBlock(const std::vector<Instruction *> &instrs) 
     }
     bb.SetLastInstr(instrs.back());
     return bb;
+}
+
+void BasicBlock::RemoveFromSuccs(size_t id) {
+    auto it = std::find_if(succs_.begin(), succs_.end(),
+                           [id](BasicBlock *bb) { return bb->GetId() == id; });
+    succs_.erase(it);
+}
+
+void BasicBlock::RemoveFromPreds(size_t id) {
+    auto it = std::find_if(preds_.begin(), preds_.end(),
+                           [id](BasicBlock *bb) { return bb->GetId() == id; });
+    preds_.erase(it);
 }
 
 }  // namespace compiler

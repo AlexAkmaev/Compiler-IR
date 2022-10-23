@@ -1,10 +1,30 @@
 #include "Graph.h"
+#include "BasicBlock.h"
+#include "pass.h"
+#include <algorithm>
 
 namespace compiler {
 
+BasicBlock *Graph::FindBlock(size_t id) {
+    auto dfs_blocks = passes::Traversal{this}.getDFS(true);
+    auto it = std::find_if(dfs_blocks.begin(), dfs_blocks.end(),
+                        [id](BasicBlock *bb) { return bb->GetId() == id; });
+    return *it;
+}
+
 void Graph::SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs) {
-    for (auto bb : bbs) {
+    for (auto bb: bbs) {
         bb->SetGraph(this);
+    }
+}
+
+void Graph::RemoveBlock(size_t id) {
+    auto *rm_bb = FindBlock(id);
+    for (auto *bb : rm_bb->GetPreds()) {
+        bb->RemoveFromSuccs(rm_bb->GetId());
+    }
+    for (auto *bb : rm_bb->GetSuccs()) {
+        bb->RemoveFromPreds(rm_bb->GetId());
     }
 }
 
