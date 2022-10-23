@@ -31,7 +31,7 @@ public:
     BlocksVector getRPO(bool need_to_rerun = false);
 
 private:
-    bool dfsWalk(BasicBlock *bb, IdSet &discovered_bbs);
+    bool DFSWalk(BasicBlock *bb, IdSet &discovered_bbs);
 
     BlocksVector dfs_bbs_;
 };

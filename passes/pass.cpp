@@ -6,16 +6,16 @@ namespace compiler::passes {
 bool Traversal::Run() {
     dfs_bbs_.reserve(graph_->GetBlocksNum());
     IdSet discovered_bbs;
-    return dfsWalk(graph_->GetRoot(), discovered_bbs);
+    return DFSWalk(graph_->GetRoot(), discovered_bbs);
 }
 
-bool Traversal::dfsWalk(BasicBlock *bb, IdSet &discovered_bbs) {
+bool Traversal::DFSWalk(BasicBlock *bb, IdSet &discovered_bbs) {
     if (discovered_bbs.find(bb->GetId()) != discovered_bbs.end()) {
         return true;
     }
     discovered_bbs.insert(bb->GetId());
     for (auto *succ: bb->GetSuccs()) {
-        dfsWalk(succ, discovered_bbs);
+        DFSWalk(succ, discovered_bbs);
     }
     dfs_bbs_.emplace_back(bb);
     return true;
