@@ -23,29 +23,40 @@ TEST(basic_tests, example) {
     constexpr auto a = InstrArg::Type::a;
     constexpr auto v = InstrArg::Type::v;
     constexpr auto imm = InstrArg::Type::imm;
+    constexpr auto id = InstrArg::Type::id;
     constexpr auto U64 = InstrType::U64;
     
     // Creating Graph
 
-    Instruction movi1{Opcode::MOVI, U64, {{v, 0}, {imm, 1}}, ""};
-    Instruction movi2{Opcode::MOVI, U64, {{v, 1}, {imm, 2}}, ""};
-    Instruction u32tou64{Opcode::CAST, U64, {{v, 2}, {a, 0}}, "u32"};
+    Instruction movi1{Opcode::MOVI, U64, {{v, 0}, {imm, 1}}, 0};
+    Instruction movi2{Opcode::MOVI, U64, {{v, 1}, {imm, 2}}, 1};
+    Instruction u32tou64{Opcode::CAST, U64, {{v, 2}, {a, 0}}, 2};
     BasicBlock bb0 = BasicBlock::MakeBasicBlock({&movi1, &movi2, &u32tou64});
 
-    Instruction cmp{Opcode::CMP, U64, {{v, 1}, {v, 2}}, ""};
-    Instruction ja{Opcode::JA, U64, {}, "done"};
-    BasicBlock bb1 = BasicBlock::MakeBasicBlock({&cmp, &ja});
+    PhiInstruction phi1 = PhiInstruction::CreatePhi(U64, 3);
+    Instruction cmp{Opcode::CMP, U64, {{v, 1}, {v, 2}}, 4};
+    Instruction ja{Opcode::JA, U64, {{id, 0}}, 5};  // id = 0 ("done" label)
+    BasicBlock bb1 = BasicBlock::MakeBasicBlock({&phi1, &cmp, &ja});
 
-    Instruction mul{Opcode::MUL, U64, {{v, 0}, {v, 0}, {v, 1}}, ""};
-    Instruction addi{Opcode::ADDI, U64, {{v, 1}, {v, 1}, {imm, 1}}, ""};
-    Instruction jmp{Opcode::JMP, U64, {}, "loop"};
+    PhiInstruction phi2 = PhiInstruction::CreatePhi(U64, 6);
+    Instruction mul{Opcode::MUL, U64, {{v, 0}, {v, 0}, {v, 1}}, 7};
+    Instruction addi{Opcode::ADDI, U64, {{v, 1}, {v, 1}, {imm, 1}}, 8};
+    Instruction jmp{Opcode::JMP, U64, {{id, 1}}, 7};  // id = 1 ("loop" label)
     BasicBlock bb2 = BasicBlock::MakeBasicBlock({&mul, &addi, &jmp});
 
-    Instruction ret{Opcode::RET, U64, {{v, 0}}, ""};
+    Instruction ret{Opcode::RET, U64, {{v, 0}}, 9};
     BasicBlock bb3 = BasicBlock::MakeBasicBlock({&ret});
 
     BasicBlock bb_end = BasicBlock::MakeBasicBlock({});
 
+    // Phi funcs
+    phi1.AddDefs({&movi2, &addi});
+    phi1.AddUses({&cmp, &addi});
+
+    phi2.AddDefs({&movi1, &mul});
+    phi2.AddUses({&mul, &ret});
+
+    // Blocks CFG
     bb0.AddToSuccs({&bb1});
 
     bb1.AddToPreds({&bb0, &bb2});

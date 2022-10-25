@@ -1,5 +1,5 @@
-#include "BasicBlock.h"
-#include "Graph.h"
+#include "include/BasicBlock.h"
+#include "include/Graph.h"
 #include <algorithm>
 
 namespace compiler {
@@ -15,6 +15,23 @@ BasicBlock::BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph 
     graph_ = graph;
     id_ = graph_->GetBlocksNum();
     graph_->IncreaseBlocksNum();
+}
+
+std::set<size_t> BasicBlock::CollectIds(const BlocksVector &bbs) {
+    std::set<size_t> ids;
+    for (auto bb: bbs) {
+        ids.insert(bb->GetId());
+    }
+    return ids;
+}
+
+size_t BasicBlock::GetId() {
+    if (id_.has_value()) {
+        return id_.value();
+    }
+    id_ = graph_->GetBlocksNum();
+    graph_->IncreaseBlocksNum();
+    return id_.value();
 }
 
 BasicBlock BasicBlock::MakeBasicBlock(const std::vector<Instruction *> &instrs) {

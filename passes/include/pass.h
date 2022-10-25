@@ -9,7 +9,6 @@
 namespace compiler::passes {
 
 using IdSet = std::unordered_set<size_t>;
-using BlocksVector = std::vector<BasicBlock *>;
 
 class Pass {
 public:
@@ -46,8 +45,6 @@ private:
     bool FastDomTree();
 
     std::set<size_t> CalcDifference(Graph graph, size_t rm_id, const std::set<size_t> &ids);
-
-    std::set<size_t> CollectIds(const BlocksVector &bbs);
 
     bool is_slow_{false};
 };

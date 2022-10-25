@@ -7,20 +7,22 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(passes)
 
 set(COMPILER_SOURCES
-    compiler.cpp
     Graph.cpp
     BasicBlock.cpp
 )
 
-add_executable(compiler ${COMPILER_SOURCES})
-target_include_directories(compiler
+add_library(compiler_lib ${COMPILER_SOURCES})
+target_include_directories(compiler_lib
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/passes/include
 )
-target_link_libraries(compiler passes_lib)
+
+add_executable(compiler compiler.cpp)
+target_link_libraries(compiler compiler_lib passes_lib)
 
 include(CTest)
 enable_testing()
 
-#if(BUILD_TESTING)
-#    add_subdirectory(tests)
-#endif()
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

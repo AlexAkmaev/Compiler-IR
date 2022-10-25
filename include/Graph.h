@@ -14,7 +14,10 @@ class BasicBlock;
 class Graph final {
 public:
     explicit Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num) : root_(root), end_(end),
-                                                                            params_num_(params_num), blocks_num_{2} {}
+                                                                            params_num_(params_num), blocks_num_{2} {
+        root->SetId(0);
+        end->SetId(1);
+    }
 
     void SetRoot(BasicBlock *root) {
         root_ = root;

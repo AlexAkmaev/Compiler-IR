@@ -48,6 +48,22 @@ public:
         return type_;
     }
 
+    void SetDef(Instruction *def) {
+        def_ = def;
+    }
+
+    Instruction *GetDef() {
+        return def_;
+    }
+
+    void AddUses(std::initializer_list<Instruction *> uses) {
+        uses_.insert(uses_.end(), uses.begin(), uses.end());
+    }
+
+    std::vector<Instruction *> GetUses() {
+        return uses_;
+    }
+
     void SetPrev(Instruction *prev) {
         prev_ = prev;
     }
@@ -100,6 +116,14 @@ public:
     template<typename... Defs>
     static PhiInstruction CreatePhi(InstrType type, size_t id, Instruction *prev, Instruction *next, Defs... defs) {
         return PhiInstruction(type, id, prev, next, std::vector<Instruction *>{{defs...}});
+    }
+
+    void AddDefs(std::initializer_list<Instruction *> defs) {
+        defs_.insert(defs_.end(), defs.begin(), defs.end());
+    }
+
+    std::vector<Instruction *> GetDefs() {
+        return defs_;
     }
 
 private:

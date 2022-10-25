@@ -2,10 +2,14 @@
 #define OPTIMIZER_BASICBLOCK_H
 
 #include "Instruction.h"
+#include <set>
 
 namespace compiler {
 
 class Graph;
+class BasicBlock;
+
+using BlocksVector = std::vector<BasicBlock *>;
 
 class BasicBlock final {
 public:
@@ -17,6 +21,8 @@ public:
     explicit BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph);
 
     static BasicBlock MakeBasicBlock(const std::vector<Instruction *> &instrs);
+
+    static std::set<size_t> CollectIds(const BlocksVector &bbs);
 
     void SetGraph(Graph *graph) {
         graph_ = graph;
@@ -54,8 +60,11 @@ public:
         id_ = id;
     }
 
-    size_t GetId() {
-        return id_;
+    size_t GetId();
+
+    static void AddEdge(BasicBlock *lhs, BasicBlock *rhs) {
+        lhs->AddToSuccs({rhs});
+        rhs->AddToPreds({lhs});
     }
 
     void AddToPreds(std::initializer_list<BasicBlock *> bbs) {
@@ -83,7 +92,7 @@ public:
     }
 
 private:
-    size_t id_{static_cast<size_t>(-1)};
+    std::optional<size_t> id_;
 
     Instruction *first_instr_{nullptr};
     Instruction *last_instr_{nullptr};
