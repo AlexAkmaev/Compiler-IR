@@ -17,7 +17,7 @@ public:
     explicit BasicBlock(Instruction *first_instr, Instruction *last_instr) : first_instr_(first_instr),
                                                                              last_instr_(last_instr) {}
 
-    BasicBlock(Graph *graph);
+    explicit BasicBlock(Graph *graph);
     explicit BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph);
 
     static BasicBlock MakeBasicBlock(const std::vector<Instruction *> &instrs);

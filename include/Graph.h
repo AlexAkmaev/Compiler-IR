@@ -13,6 +13,7 @@ class BasicBlock;
 
 class Graph final {
 public:
+    Graph() = default;
     explicit Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num) : root_(root), end_(end),
                                                                             params_num_(params_num), blocks_num_{2} {
         root->SetId(0);
@@ -20,7 +21,9 @@ public:
     }
 
     void SetRoot(BasicBlock *root) {
+        root->SetId(0);
         root_ = root;
+        ++blocks_num_;
     }
 
     BasicBlock *GetRoot() {
@@ -28,7 +31,9 @@ public:
     }
 
     void SetEnd(BasicBlock *end) {
+        end->SetId(1);
         end_ = end;
+        ++blocks_num_;
     }
 
     BasicBlock *GetEnd() {
@@ -51,6 +56,10 @@ public:
 
     void IncreaseBlocksNum() {
         ++blocks_num_;
+    }
+
+    void IncreaseBlocksNumOn(uint16_t count) {
+        blocks_num_ += count;
     }
 
     size_t GetBlocksNum() const {
