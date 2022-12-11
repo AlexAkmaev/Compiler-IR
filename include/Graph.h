@@ -44,7 +44,9 @@ public:
 
     void SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs);
 
-    void RemoveBlock(size_t id);
+    BasicBlock *RemoveBlock(size_t id);
+
+    void RestoreBlock(BasicBlock *bb);
 
     void SetParamsNum(uint8_t params_num) {
         params_num_ = params_num;

@@ -44,7 +44,7 @@ private:
     bool SlowDomTree();
     bool FastDomTree();
 
-    std::set<size_t> CalcDifference(Graph graph, size_t rm_id, const std::set<size_t> &ids);
+    std::set<size_t> CalcDifference(Graph *graph, size_t rm_id, const std::set<size_t> &ids);
 
     bool is_slow_{false};
 };

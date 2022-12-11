@@ -44,24 +44,27 @@ bool DomTree::Run() {
 bool DomTree::SlowDomTree() {
     auto dfs_blocks = Traversal{graph_}.getDFS(true);
     for (auto bb: dfs_blocks) {
-        for (auto id : CalcDifference(*graph_, bb->GetId(), BasicBlock::CollectIds(dfs_blocks))) {
+        bb->AddToDoms({graph_->GetRoot()});
+        for (auto id : CalcDifference(graph_, bb->GetId(), BasicBlock::CollectIds(dfs_blocks))) {
             graph_->FindBlock(id)->AddToDoms({bb});
         }
     }
     return true;
 }
 
-std::set<size_t> DomTree::CalcDifference(Graph graph, size_t rm_id, const std::set<size_t> &ids) {
-    graph.RemoveBlock(rm_id);
-    auto new_ids = BasicBlock::CollectIds(Traversal{&graph}.getDFS(true));
+std::set<size_t> DomTree::CalcDifference(Graph *graph, size_t rm_id, const std::set<size_t> &ids) {
+    auto *rm_bb = graph->RemoveBlock(rm_id);
+    auto new_ids = BasicBlock::CollectIds(Traversal{graph}.getDFS(true));
     std::set<size_t> intersect;
-    std::set_intersection(ids.begin(), ids.end(), new_ids.begin(), new_ids.end(),
+    std::set_difference(ids.begin(), ids.end(), new_ids.begin(), new_ids.end(),
                           std::inserter(intersect, intersect.end()));
+    intersect.erase(rm_id);
+    graph->RestoreBlock(rm_bb);
     return intersect;
 }
 
 bool DomTree::FastDomTree() {
-    return SlowDomTree();
+    return SlowDomTree();  // TODO(): Implement fast version
 }
 
 }  // namespace compiler::passes

@@ -18,13 +18,17 @@ void Graph::SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs) {
     }
 }
 
-void Graph::RemoveBlock(size_t id) {
+BasicBlock *Graph::RemoveBlock(size_t id) {
     auto *rm_bb = FindBlock(id);
     for (auto *bb : rm_bb->GetPreds()) {
         bb->RemoveFromSuccs(rm_bb->GetId());
     }
-    for (auto *bb : rm_bb->GetSuccs()) {
-        bb->RemoveFromPreds(rm_bb->GetId());
+    return rm_bb;
+}
+
+void Graph::RestoreBlock(BasicBlock *rm_bb) {
+    for (auto *bb : rm_bb->GetPreds()) {
+        bb->AddToSuccs({rm_bb});
     }
 }
 

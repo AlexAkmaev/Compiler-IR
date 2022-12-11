@@ -5,6 +5,21 @@
 
 namespace compiler::test {
 
+// Graph 1 BasicBlocks enumeration
+namespace G1_BB {
+uint8_t A = 0, D = 1, B = 2, C = 3, E = 4, F = 5, G = 6;
+}
+
+// Graph 2 BasicBlocks enumeration
+namespace G2_BB {
+uint8_t A = 0, K = 1, B = 2, C = 3, D = 4, E = 5, F = 6, G = 7, H = 8, I = 9, J = 10;
+}
+
+// Graph 3 BasicBlocks enumeration
+namespace G3_BB {
+uint8_t A = 0, I = 1, B = 2, C = 3, D = 4, E = 5, F = 6, G = 7, H = 8;
+}
+
 class GraphTest : public testing::Test {
 public:
     GraphTest() {
@@ -56,13 +71,13 @@ public:
         graph1_.SetParamsNum(0);
         graph1_.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F, &G});
 
-        EXPECT_EQ(A.GetId(), 0);
-        EXPECT_EQ(D.GetId(), 1);
-        EXPECT_EQ(B.GetId(), 2);
-        EXPECT_EQ(C.GetId(), 3);
-        EXPECT_EQ(E.GetId(), 4);
-        EXPECT_EQ(F.GetId(), 5);
-        EXPECT_EQ(G.GetId(), 6);
+        EXPECT_EQ(A.GetId(), G1_BB::A);
+        EXPECT_EQ(D.GetId(), G1_BB::D);
+        EXPECT_EQ(B.GetId(), G1_BB::B);
+        EXPECT_EQ(C.GetId(), G1_BB::C);
+        EXPECT_EQ(E.GetId(), G1_BB::E);
+        EXPECT_EQ(F.GetId(), G1_BB::F);
+        EXPECT_EQ(G.GetId(), G1_BB::G);
     }
 
     void SetSecondGraph() {
@@ -126,17 +141,17 @@ public:
         graph2_.SetParamsNum(0);
         graph2_.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F, &G, &H, &I, &J, &K});
 
-        EXPECT_EQ(A.GetId(), 0);
-        EXPECT_EQ(K.GetId(), 1);
-        EXPECT_EQ(B.GetId(), 2);
-        EXPECT_EQ(C.GetId(), 3);
-        EXPECT_EQ(D.GetId(), 4);
-        EXPECT_EQ(E.GetId(), 5);
-        EXPECT_EQ(F.GetId(), 6);
-        EXPECT_EQ(G.GetId(), 7);
-        EXPECT_EQ(H.GetId(), 8);
-        EXPECT_EQ(I.GetId(), 9);
-        EXPECT_EQ(J.GetId(), 10);
+        EXPECT_EQ(A.GetId(), G2_BB::A);
+        EXPECT_EQ(K.GetId(), G2_BB::K);
+        EXPECT_EQ(B.GetId(), G2_BB::B);
+        EXPECT_EQ(C.GetId(), G2_BB::C);
+        EXPECT_EQ(D.GetId(), G2_BB::D);
+        EXPECT_EQ(E.GetId(), G2_BB::E);
+        EXPECT_EQ(F.GetId(), G2_BB::F);
+        EXPECT_EQ(G.GetId(), G2_BB::G);
+        EXPECT_EQ(H.GetId(), G2_BB::H);
+        EXPECT_EQ(I.GetId(), G2_BB::I);
+        EXPECT_EQ(J.GetId(), G2_BB::J);
     }
 
     void SetThirdGraph() {
@@ -191,15 +206,15 @@ public:
         graph3_.SetParamsNum(0);
         graph3_.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F, &G, &H, &I});
 
-        EXPECT_EQ(A.GetId(), 0);
-        EXPECT_EQ(I.GetId(), 1);
-        EXPECT_EQ(B.GetId(), 2);
-        EXPECT_EQ(C.GetId(), 3);
-        EXPECT_EQ(D.GetId(), 4);
-        EXPECT_EQ(E.GetId(), 5);
-        EXPECT_EQ(F.GetId(), 6);
-        EXPECT_EQ(G.GetId(), 7);
-        EXPECT_EQ(H.GetId(), 8);
+        EXPECT_EQ(A.GetId(), G3_BB::A);
+        EXPECT_EQ(I.GetId(), G3_BB::I);
+        EXPECT_EQ(B.GetId(), G3_BB::B);
+        EXPECT_EQ(C.GetId(), G3_BB::C);
+        EXPECT_EQ(D.GetId(), G3_BB::D);
+        EXPECT_EQ(E.GetId(), G3_BB::E);
+        EXPECT_EQ(F.GetId(), G3_BB::F);
+        EXPECT_EQ(G.GetId(), G3_BB::G);
+        EXPECT_EQ(H.GetId(), G3_BB::H);
     }
 
     Graph GetFirstGraph() const {
@@ -259,58 +274,250 @@ TEST_F(GraphTest, simple_rpo) {
     ASSERT_EQ(rpo.at(3)->GetId(), 1);
 }
 
-TEST_F(GraphTest, example1_rpo) {
+/*
+ ====================================================
+ ==================== RPO tests =====================
+ ====================================================
+ */
+TEST_F(GraphTest, Example1_Rpo) {
+    using namespace G1_BB;
+
     Graph graph = GetFirstGraph();
     passes::Traversal tr{&graph};
     tr.Run();
     BlocksVector rpo = tr.getRPO();
 
     ASSERT_EQ(rpo.size(), 7);
-    ASSERT_EQ(rpo.at(0)->GetId(), 0);   // A
-    ASSERT_EQ(rpo.at(1)->GetId(), 2);   // B
-    ASSERT_EQ(rpo.at(2)->GetId(), 5);   // F
-    ASSERT_EQ(rpo.at(3)->GetId(), 6);   // G
-    ASSERT_EQ(rpo.at(4)->GetId(), 4);   // E
-    ASSERT_EQ(rpo.at(5)->GetId(), 3);   // C
-    ASSERT_EQ(rpo.at(6)->GetId(), 1);   // D
+    ASSERT_EQ(rpo.at(0)->GetId(), A);
+    ASSERT_EQ(rpo.at(1)->GetId(), B);
+    ASSERT_EQ(rpo.at(2)->GetId(), F);
+    ASSERT_EQ(rpo.at(3)->GetId(), G);
+    ASSERT_EQ(rpo.at(4)->GetId(), E);
+    ASSERT_EQ(rpo.at(5)->GetId(), C);
+    ASSERT_EQ(rpo.at(6)->GetId(), D);
 }
 
-TEST_F(GraphTest, example2_rpo) {
+TEST_F(GraphTest, Example2_Rpo) {
+    using namespace G2_BB;
+
     Graph graph = GetSecondGraph();
     passes::Traversal tr{&graph};
     tr.Run();
     BlocksVector rpo = tr.getRPO();
 
     ASSERT_EQ(rpo.size(), 11);
-    ASSERT_EQ(rpo.at(0)->GetId(), 0);   // A
-    ASSERT_EQ(rpo.at(1)->GetId(), 2);   // B
-    ASSERT_EQ(rpo.at(2)->GetId(), 10);  // J
-    ASSERT_EQ(rpo.at(3)->GetId(), 3);   // C
-    ASSERT_EQ(rpo.at(4)->GetId(), 4);   // D
-    ASSERT_EQ(rpo.at(5)->GetId(), 5);   // E
-    ASSERT_EQ(rpo.at(6)->GetId(), 6);   // F
-    ASSERT_EQ(rpo.at(7)->GetId(), 7);   // G
-    ASSERT_EQ(rpo.at(8)->GetId(), 8);   // H
-    ASSERT_EQ(rpo.at(9)->GetId(), 9);   // I
-    ASSERT_EQ(rpo.at(10)->GetId(), 1);  // K
+    ASSERT_EQ(rpo.at(0)->GetId(), A);
+    ASSERT_EQ(rpo.at(1)->GetId(), B);
+    ASSERT_EQ(rpo.at(2)->GetId(), J);
+    ASSERT_EQ(rpo.at(3)->GetId(), C);
+    ASSERT_EQ(rpo.at(4)->GetId(), D);
+    ASSERT_EQ(rpo.at(5)->GetId(), E);
+    ASSERT_EQ(rpo.at(6)->GetId(), F);
+    ASSERT_EQ(rpo.at(7)->GetId(), G);
+    ASSERT_EQ(rpo.at(8)->GetId(), H);
+    ASSERT_EQ(rpo.at(9)->GetId(), I);
+    ASSERT_EQ(rpo.at(10)->GetId(), K);
 }
 
-TEST_F(GraphTest, example3_rpo) {
+TEST_F(GraphTest, Example3_Rpo) {
+    using namespace G3_BB;
+
     Graph graph = GetThirdGraph();
     passes::Traversal tr{&graph};
     tr.Run();
     BlocksVector rpo = tr.getRPO();
 
     ASSERT_EQ(rpo.size(), 9);
-    ASSERT_EQ(rpo.at(0)->GetId(), 0);   // A
-    ASSERT_EQ(rpo.at(1)->GetId(), 2);   // B
-    ASSERT_EQ(rpo.at(2)->GetId(), 5);   // E
-    ASSERT_EQ(rpo.at(3)->GetId(), 6);   // F
-    ASSERT_EQ(rpo.at(4)->GetId(), 8);   // H
-    ASSERT_EQ(rpo.at(5)->GetId(), 7);   // G
-    ASSERT_EQ(rpo.at(6)->GetId(), 3);   // C
-    ASSERT_EQ(rpo.at(7)->GetId(), 4);   // D
-    ASSERT_EQ(rpo.at(8)->GetId(), 1);   // I
+    ASSERT_EQ(rpo.at(0)->GetId(), A);
+    ASSERT_EQ(rpo.at(1)->GetId(), B);
+    ASSERT_EQ(rpo.at(2)->GetId(), E);
+    ASSERT_EQ(rpo.at(3)->GetId(), F);
+    ASSERT_EQ(rpo.at(4)->GetId(), H);
+    ASSERT_EQ(rpo.at(5)->GetId(), G);
+    ASSERT_EQ(rpo.at(6)->GetId(), C);
+    ASSERT_EQ(rpo.at(7)->GetId(), D);
+    ASSERT_EQ(rpo.at(8)->GetId(), I);
+}
+
+/*
+ ====================================================
+ ================== DomTree tests ===================
+ ====================================================
+ */
+template<typename...Args>
+void TestBlockDominators(Graph *graph, uint8_t testId, Args...args) {
+    std::vector<uint8_t> dominators{{ args... }};
+    auto bb_dom_blocks = graph->FindBlock(testId)->GetDomBlocks();
+    ASSERT_EQ(bb_dom_blocks.size(), dominators.size());
+    std::set<size_t> bbs_id;
+    std::transform(bb_dom_blocks.begin(), bb_dom_blocks.end(),
+                   std::inserter(bbs_id, bbs_id.end()), [](BasicBlock *bb) {
+        return bb->GetId();
+    });
+    ASSERT_TRUE(std::all_of(dominators.begin(), dominators.end(), [&bbs_id](size_t id) {
+        bool is_found = bbs_id.find(id) != bbs_id.end();
+        EXPECT_TRUE(is_found) << "Error! BasicBlock with id = " << id << " wasn't found among dominators";
+        return is_found;
+    }));
+}
+
+TEST_F(GraphTest, Example_1_Dom_Tree) {
+    using namespace G1_BB;
+    Graph graph = GetFirstGraph();
+    passes::DomTree domTree{&graph, true};
+    ASSERT_TRUE(domTree.Run());
+
+    {
+        SCOPED_TRACE("A");
+        // A dominators are: A
+        TestBlockDominators(&graph, A, A);
+    }
+    {
+        SCOPED_TRACE("B");
+        // B dominators are: A
+        TestBlockDominators(&graph, B, A);
+    }
+    {
+        SCOPED_TRACE("C");
+        // C dominators are: A, B
+        TestBlockDominators(&graph, C, A, B);
+    }
+    {
+        SCOPED_TRACE("D");
+        // D dominators are: A, B
+        TestBlockDominators(&graph, D, A, B);
+    }
+    {
+        SCOPED_TRACE("E");
+        // E dominators are: A, B, F
+        TestBlockDominators(&graph, E, A, B, F);
+    }
+    {
+        SCOPED_TRACE("F");
+        // F dominators are: A, B
+        TestBlockDominators(&graph, F, A, B);
+    }
+    {
+        SCOPED_TRACE("G");
+        // G dominators are: A, B, F
+        TestBlockDominators(&graph, G, A, B, F);
+    }
+}
+
+TEST_F(GraphTest, Example2_Dom_Tree) {
+    using namespace G2_BB;
+    Graph graph = GetSecondGraph();
+    passes::DomTree domTree{&graph, true};
+    ASSERT_TRUE(domTree.Run());
+
+    {
+        SCOPED_TRACE("A");
+        // A dominators are: A
+        TestBlockDominators(&graph, A, A);
+    }
+    {
+        SCOPED_TRACE("B");
+        // B dominators are: A
+        TestBlockDominators(&graph, B, A);
+    }
+    {
+        SCOPED_TRACE("C");
+        // C dominators are: A, B
+        TestBlockDominators(&graph, C, A, B);
+    }
+    {
+        SCOPED_TRACE("D");
+        // D dominators are: A, B, C
+        TestBlockDominators(&graph, D, A, B, C);
+    }
+    {
+        SCOPED_TRACE("E");
+        // E dominators are: A, B, C, D
+        TestBlockDominators(&graph, E, A, B, C, D);
+    }
+    {
+        SCOPED_TRACE("F");
+        // F dominators are: A, B, C, D
+        TestBlockDominators(&graph, F, A, B, C, D, E);
+    }
+    {
+        SCOPED_TRACE("G");
+        // G dominators are: A, B, C, D, E, F
+        TestBlockDominators(&graph, G, A, B, C, D, E, F);
+    }
+    {
+        SCOPED_TRACE("H");
+        // H dominators are: A, B, C, D, E, F, G
+        TestBlockDominators(&graph, H, A, B, C, D, E, F, G);
+    }
+    {
+        SCOPED_TRACE("I");
+        // I dominators are: A, B, C, D, E, F, G
+        TestBlockDominators(&graph, I, A, B, C, D, E, F, G);
+    }
+    {
+        SCOPED_TRACE("J");
+        // J dominators are: A, B
+        TestBlockDominators(&graph, J, A, B);
+    }
+    {
+        SCOPED_TRACE("K");
+        // K dominators are: A, B, C, D, E, F, G, I
+        TestBlockDominators(&graph, K, A, B, C, D, E, F, G, I);
+    }
+}
+
+TEST_F(GraphTest, Example3_Dom_Tree) {
+    using namespace G3_BB;
+    Graph graph = GetThirdGraph();
+    passes::DomTree domTree{&graph, true};
+    ASSERT_TRUE(domTree.Run());
+
+    {
+        SCOPED_TRACE("A");
+        // A dominators are: A
+        TestBlockDominators(&graph, A, A);
+    }
+    {
+        SCOPED_TRACE("B");
+        // B dominators are: A
+        TestBlockDominators(&graph, B, A);
+    }
+    {
+        SCOPED_TRACE("C");
+        // C dominators are: A, B
+        TestBlockDominators(&graph, C, A, B);
+    }
+    {
+        SCOPED_TRACE("D");
+        // D dominators are: A, B
+        TestBlockDominators(&graph, D, A, B);
+    }
+    {
+        SCOPED_TRACE("E");
+        // E dominators are: A, B
+        TestBlockDominators(&graph, E, A, B);
+    }
+    {
+        SCOPED_TRACE("F");
+        // F dominators are: A, B, E
+        TestBlockDominators(&graph, F, A, B, E);
+    }
+    {
+        SCOPED_TRACE("G");
+        // G dominators are: A, B
+        TestBlockDominators(&graph, G, A, B);
+    }
+    {
+        SCOPED_TRACE("H");
+        // H dominators are: A, B, C E, F
+        TestBlockDominators(&graph, H, A, B, E, F);
+    }
+    {
+        SCOPED_TRACE("I");
+        // I dominators are: A, B
+        TestBlockDominators(&graph, I, A, B);
+    }
 }
 
 }  // namespace compiler::test

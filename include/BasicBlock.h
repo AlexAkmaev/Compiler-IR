@@ -79,15 +79,19 @@ public:
         dom_blocks_.insert(dom_blocks_.end(), bbs.begin(), bbs.end());
     }
 
+    [[nodiscard]] BlocksVector GetDomBlocks() const {
+        return dom_blocks_;
+    }
+
     void RemoveFromSuccs(size_t id);
 
     void RemoveFromPreds(size_t id);
 
-    [[nodiscard]] std::vector<BasicBlock *> GetPreds() const {
+    [[nodiscard]] BlocksVector GetPreds() const {
         return preds_;
     }
 
-    [[nodiscard]] std::vector<BasicBlock *> GetSuccs() const {
+    [[nodiscard]] BlocksVector GetSuccs() const {
         return succs_;
     }
 
@@ -98,10 +102,10 @@ private:
     Instruction *last_instr_{nullptr};
     PhiInstruction *first_phi_{nullptr};
 
-    std::vector<BasicBlock *> preds_;
-    std::vector<BasicBlock *> succs_;
+    BlocksVector preds_;
+    BlocksVector succs_;
 
-    std::vector<BasicBlock *> dom_blocks_;
+    BlocksVector dom_blocks_;
     BasicBlock *imm_dom_;
 
     Graph *graph_;
