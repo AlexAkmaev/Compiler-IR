@@ -7,6 +7,7 @@
 namespace compiler {
 
 class Graph;
+
 class BasicBlock;
 
 using BlocksVector = std::vector<BasicBlock *>;
@@ -14,10 +15,12 @@ using BlocksVector = std::vector<BasicBlock *>;
 class BasicBlock final {
 public:
     BasicBlock() = default;
+
     explicit BasicBlock(Instruction *first_instr, Instruction *last_instr) : first_instr_(first_instr),
                                                                              last_instr_(last_instr) {}
 
     explicit BasicBlock(Graph *graph);
+
     explicit BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph);
 
     static BasicBlock MakeBasicBlock(const std::vector<Instruction *> &instrs);
@@ -67,6 +70,8 @@ public:
         rhs->AddToPreds({lhs});
     }
 
+    bool IsDominatedBy(BasicBlock *dom);
+
     void AddToPreds(std::initializer_list<BasicBlock *> bbs) {
         preds_.insert(preds_.end(), bbs.begin(), bbs.end());
     }
@@ -79,8 +84,16 @@ public:
         dom_blocks_.insert(dom_blocks_.end(), bbs.begin(), bbs.end());
     }
 
+    void SetImmDom(BasicBlock *bb) {
+        imm_dom_ = bb;
+    }
+
     [[nodiscard]] BlocksVector GetDomBlocks() const {
         return dom_blocks_;
+    }
+
+    BasicBlock *GetImmDom() {
+        return imm_dom_;
     }
 
     void RemoveFromSuccs(size_t id);

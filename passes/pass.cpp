@@ -49,6 +49,14 @@ bool DomTree::SlowDomTree() {
             graph_->FindBlock(id)->AddToDoms({bb});
         }
     }
+    // immediate dominators calculation
+    for (auto bb: dfs_blocks) {
+        auto *immDom = CalcImmDominator(bb->GetDomBlocks());
+        if (!immDom) {
+            return false;
+        }
+        bb->SetImmDom(immDom);
+    }
     return true;
 }
 
@@ -61,6 +69,24 @@ std::set<size_t> DomTree::CalcDifference(Graph *graph, size_t rm_id, const std::
     intersect.erase(rm_id);
     graph->RestoreBlock(rm_bb);
     return intersect;
+}
+
+BasicBlock *DomTree::CalcImmDominator(const BlocksVector &doms) {
+    for (size_t i = 0; i < doms.size(); ++i) {
+        bool is_imm_dom = true;
+        for (size_t j = 0; j < doms.size(); ++j) {
+            if (i == j) {
+                continue;
+            }
+            if (!doms[i]->IsDominatedBy(doms[j])) {
+                is_imm_dom = false;
+            }
+        }
+        if (is_imm_dom) {
+            return doms[i];
+        }
+    }
+    return nullptr;
 }
 
 bool DomTree::FastDomTree() {

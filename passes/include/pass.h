@@ -44,9 +44,18 @@ private:
     bool SlowDomTree();
     bool FastDomTree();
 
-    std::set<size_t> CalcDifference(Graph *graph, size_t rm_id, const std::set<size_t> &ids);
+    static std::set<size_t> CalcDifference(Graph *graph, size_t rm_id, const std::set<size_t> &ids);
+    static BasicBlock *CalcImmDominator(const BlocksVector &doms);
 
     bool is_slow_{false};
+};
+
+class LoopAnalyzer final : public Pass {
+public:
+    explicit LoopAnalyzer(Graph *graph) : Pass(graph) {}
+    bool Run() override;
+    ~LoopAnalyzer() override = default;
+private:
 };
 
 }  // namespace compiler::passes

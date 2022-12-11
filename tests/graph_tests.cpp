@@ -371,36 +371,43 @@ TEST_F(GraphTest, Example_1_Dom_Tree) {
         SCOPED_TRACE("A");
         // A dominators are: A
         TestBlockDominators(&graph, A, A);
+        ASSERT_EQ(graph.FindBlock(A)->GetImmDom()->GetId(), A);
     }
     {
         SCOPED_TRACE("B");
         // B dominators are: A
         TestBlockDominators(&graph, B, A);
+        ASSERT_EQ(graph.FindBlock(B)->GetImmDom()->GetId(), A);
     }
     {
         SCOPED_TRACE("C");
         // C dominators are: A, B
         TestBlockDominators(&graph, C, A, B);
+        ASSERT_EQ(graph.FindBlock(C)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("D");
         // D dominators are: A, B
         TestBlockDominators(&graph, D, A, B);
+        ASSERT_EQ(graph.FindBlock(D)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("E");
         // E dominators are: A, B, F
         TestBlockDominators(&graph, E, A, B, F);
+        ASSERT_EQ(graph.FindBlock(E)->GetImmDom()->GetId(), F);
     }
     {
         SCOPED_TRACE("F");
         // F dominators are: A, B
         TestBlockDominators(&graph, F, A, B);
+        ASSERT_EQ(graph.FindBlock(F)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("G");
         // G dominators are: A, B, F
         TestBlockDominators(&graph, G, A, B, F);
+        ASSERT_EQ(graph.FindBlock(G)->GetImmDom()->GetId(), F);
     }
 }
 
@@ -414,56 +421,67 @@ TEST_F(GraphTest, Example2_Dom_Tree) {
         SCOPED_TRACE("A");
         // A dominators are: A
         TestBlockDominators(&graph, A, A);
+        ASSERT_EQ(graph.FindBlock(A)->GetImmDom()->GetId(), A);
     }
     {
         SCOPED_TRACE("B");
         // B dominators are: A
         TestBlockDominators(&graph, B, A);
+        ASSERT_EQ(graph.FindBlock(B)->GetImmDom()->GetId(), A);
     }
     {
         SCOPED_TRACE("C");
         // C dominators are: A, B
         TestBlockDominators(&graph, C, A, B);
+        ASSERT_EQ(graph.FindBlock(C)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("D");
         // D dominators are: A, B, C
         TestBlockDominators(&graph, D, A, B, C);
+        ASSERT_EQ(graph.FindBlock(D)->GetImmDom()->GetId(), C);
     }
     {
         SCOPED_TRACE("E");
         // E dominators are: A, B, C, D
         TestBlockDominators(&graph, E, A, B, C, D);
+        ASSERT_EQ(graph.FindBlock(E)->GetImmDom()->GetId(), D);
     }
     {
         SCOPED_TRACE("F");
         // F dominators are: A, B, C, D
         TestBlockDominators(&graph, F, A, B, C, D, E);
+        ASSERT_EQ(graph.FindBlock(F)->GetImmDom()->GetId(), E);
     }
     {
         SCOPED_TRACE("G");
         // G dominators are: A, B, C, D, E, F
         TestBlockDominators(&graph, G, A, B, C, D, E, F);
+        ASSERT_EQ(graph.FindBlock(G)->GetImmDom()->GetId(), F);
     }
     {
         SCOPED_TRACE("H");
         // H dominators are: A, B, C, D, E, F, G
         TestBlockDominators(&graph, H, A, B, C, D, E, F, G);
+        ASSERT_EQ(graph.FindBlock(H)->GetImmDom()->GetId(), G);
     }
     {
         SCOPED_TRACE("I");
         // I dominators are: A, B, C, D, E, F, G
         TestBlockDominators(&graph, I, A, B, C, D, E, F, G);
+        ASSERT_EQ(graph.FindBlock(I)->GetImmDom()->GetId(), G);
     }
     {
         SCOPED_TRACE("J");
         // J dominators are: A, B
         TestBlockDominators(&graph, J, A, B);
+        ASSERT_EQ(graph.FindBlock(J)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("K");
         // K dominators are: A, B, C, D, E, F, G, I
         TestBlockDominators(&graph, K, A, B, C, D, E, F, G, I);
+        ASSERT_EQ(graph.FindBlock(K)->GetImmDom()->GetId(), I);
     }
 }
 
@@ -477,46 +495,55 @@ TEST_F(GraphTest, Example3_Dom_Tree) {
         SCOPED_TRACE("A");
         // A dominators are: A
         TestBlockDominators(&graph, A, A);
+        ASSERT_EQ(graph.FindBlock(A)->GetImmDom()->GetId(), A);
     }
     {
         SCOPED_TRACE("B");
         // B dominators are: A
         TestBlockDominators(&graph, B, A);
+        ASSERT_EQ(graph.FindBlock(B)->GetImmDom()->GetId(), A);
     }
     {
         SCOPED_TRACE("C");
         // C dominators are: A, B
         TestBlockDominators(&graph, C, A, B);
+        ASSERT_EQ(graph.FindBlock(C)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("D");
         // D dominators are: A, B
         TestBlockDominators(&graph, D, A, B);
+        ASSERT_EQ(graph.FindBlock(D)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("E");
         // E dominators are: A, B
         TestBlockDominators(&graph, E, A, B);
+        ASSERT_EQ(graph.FindBlock(E)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("F");
         // F dominators are: A, B, E
         TestBlockDominators(&graph, F, A, B, E);
+        ASSERT_EQ(graph.FindBlock(F)->GetImmDom()->GetId(), E);
     }
     {
         SCOPED_TRACE("G");
         // G dominators are: A, B
         TestBlockDominators(&graph, G, A, B);
+        ASSERT_EQ(graph.FindBlock(G)->GetImmDom()->GetId(), B);
     }
     {
         SCOPED_TRACE("H");
         // H dominators are: A, B, C E, F
         TestBlockDominators(&graph, H, A, B, E, F);
+        ASSERT_EQ(graph.FindBlock(H)->GetImmDom()->GetId(), F);
     }
     {
         SCOPED_TRACE("I");
         // I dominators are: A, B
         TestBlockDominators(&graph, I, A, B);
+        ASSERT_EQ(graph.FindBlock(I)->GetImmDom()->GetId(), B);
     }
 }
 

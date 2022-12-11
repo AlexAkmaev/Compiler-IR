@@ -70,4 +70,9 @@ void BasicBlock::RemoveFromPreds(size_t id) {
     preds_.erase(it);
 }
 
+bool BasicBlock::IsDominatedBy(BasicBlock *dom) {
+    return (std::find_if(dom_blocks_.begin(), dom_blocks_.end(),
+                         [dom](BasicBlock *bb) { return dom->GetId() == bb->GetId(); }) != dom_blocks_.end());
+}
+
 }  // namespace compiler
