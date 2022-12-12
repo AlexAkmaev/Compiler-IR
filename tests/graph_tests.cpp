@@ -535,7 +535,7 @@ TEST_F(GraphTest, Example3_Dom_Tree) {
     }
     {
         SCOPED_TRACE("H");
-        // H dominators are: A, B, C E, F
+        // H dominators are: A, B, E, F
         TestBlockDominators(&graph, H, A, B, E, F);
         ASSERT_EQ(graph.FindBlock(H)->GetImmDom()->GetId(), F);
     }

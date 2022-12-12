@@ -2,12 +2,13 @@
 #define OPTIMIZER_BASICBLOCK_H
 
 #include "Instruction.h"
+#include "Marker.h"
 #include <set>
 
 namespace compiler {
 
 class Graph;
-
+class Loop;
 class BasicBlock;
 
 using BlocksVector = std::vector<BasicBlock *>;
@@ -70,7 +71,17 @@ public:
         rhs->AddToPreds({lhs});
     }
 
-    bool IsDominatedBy(BasicBlock *dom);
+    void AddColor(const Marker::Color &c) {
+        marker_ |= c;
+    }
+
+    void RemoveColor(const Marker::Color &c) {
+        marker_ &= c;
+    }
+
+    [[nodiscard]] Marker GetMarker() const {
+        return marker_;
+    }
 
     void AddToPreds(std::initializer_list<BasicBlock *> bbs) {
         preds_.insert(preds_.end(), bbs.begin(), bbs.end());
@@ -78,6 +89,18 @@ public:
 
     void AddToSuccs(std::initializer_list<BasicBlock *> bbs) {
         succs_.insert(succs_.end(), bbs.begin(), bbs.end());
+    }
+
+    void RemoveFromSuccs(size_t id);
+
+    void RemoveFromPreds(size_t id);
+
+    [[nodiscard]] BlocksVector GetPreds() const {
+        return preds_;
+    }
+
+    [[nodiscard]] BlocksVector GetSuccs() const {
+        return succs_;
     }
 
     void AddToDoms(std::initializer_list<BasicBlock *> bbs) {
@@ -96,19 +119,21 @@ public:
         return imm_dom_;
     }
 
-    void RemoveFromSuccs(size_t id);
+    bool IsDominatedBy(BasicBlock *dom);
 
-    void RemoveFromPreds(size_t id);
-
-    [[nodiscard]] BlocksVector GetPreds() const {
-        return preds_;
+    void SetLoop(Loop *loop) {
+        loop_ = loop;
     }
 
-    [[nodiscard]] BlocksVector GetSuccs() const {
-        return succs_;
+    Loop *GetLoop() {
+        return loop_;
     }
+
+    bool IsLoopHeader() const;
 
 private:
+    Marker marker_;
+
     std::optional<size_t> id_;
 
     Instruction *first_instr_{nullptr};
@@ -122,6 +147,8 @@ private:
     BasicBlock *imm_dom_;
 
     Graph *graph_;
+
+    Loop *loop_{nullptr};
 };
 
 }  // namespace compiler

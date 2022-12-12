@@ -1,8 +1,10 @@
 #include "include/pass.h"
-#include <algorithm>
 
 namespace compiler::passes {
 
+/*================================================================*/
+/*========================= Traversal ============================*/
+/*================================================================*/
 bool Traversal::Run() {
     dfs_bbs_.reserve(graph_->GetBlocksNum());
     IdSet discovered_bbs;
@@ -37,15 +39,22 @@ BlocksVector Traversal::getRPO(bool need_to_rerun) {
     return rpo_bbs;
 }
 
+/*==============================================================*/
+/*========================= DomTree ============================*/
+/*==============================================================*/
 bool DomTree::Run() {
-    return is_slow_ ? SlowDomTree() : FastDomTree();
+    bool res = is_slow_ ? SlowDomTree() : FastDomTree();
+    if (res) {
+        graph_->MakeDomTreeValid();
+    }
+    return res;
 }
 
 bool DomTree::SlowDomTree() {
     auto dfs_blocks = Traversal{graph_}.getDFS(true);
     for (auto bb: dfs_blocks) {
         bb->AddToDoms({graph_->GetRoot()});
-        for (auto id : CalcDifference(graph_, bb->GetId(), BasicBlock::CollectIds(dfs_blocks))) {
+        for (auto id: CalcDifference(graph_, bb->GetId(), BasicBlock::CollectIds(dfs_blocks))) {
             graph_->FindBlock(id)->AddToDoms({bb});
         }
     }
@@ -65,7 +74,7 @@ std::set<size_t> DomTree::CalcDifference(Graph *graph, size_t rm_id, const std::
     auto new_ids = BasicBlock::CollectIds(Traversal{graph}.getDFS(true));
     std::set<size_t> intersect;
     std::set_difference(ids.begin(), ids.end(), new_ids.begin(), new_ids.end(),
-                          std::inserter(intersect, intersect.end()));
+                        std::inserter(intersect, intersect.end()));
     intersect.erase(rm_id);
     graph->RestoreBlock(rm_bb);
     return intersect;
@@ -91,6 +100,137 @@ BasicBlock *DomTree::CalcImmDominator(const BlocksVector &doms) {
 
 bool DomTree::FastDomTree() {
     return SlowDomTree();  // TODO(): Implement fast version
+}
+
+/*===================================================================*/
+/*========================= LoopAnalyzer ============================*/
+/*===================================================================*/
+bool LoopAnalyzer::Run() {
+    if (!graph_->IsDomTreeValid()) {
+        passes::DomTree domTree{graph_, true};
+        if (!domTree.Run()) {
+            std::cerr << "Error! Dominator tree building is corrupted\n";
+            return false;
+        }
+    }
+    assert(graph_->IsDomTreeValid());
+    CleanMarkers();
+    if (!CollectBackEdges(graph_->GetRoot())) {
+        std::cerr << "Error! CollectBackEdges went wrong\n";
+        return false;
+    }
+    CleanMarkers();
+    if (!PopulateLoops()) {
+        std::cerr << "Error! PopulateLoops went wrong\n";
+        return false;
+    }
+    if (!BuildLoopTree()) {
+        std::cerr << "Error! BuildLoopTree went wrong\n";
+        return false;
+    }
+    return true;
+}
+
+bool LoopAnalyzer::CollectBackEdges(BasicBlock *bb) {
+    bb->AddColor(Marker::Color::GREY);
+    bb->AddColor(Marker::Color::BLACK);
+    for (auto *succ: bb->GetSuccs()) {
+        if (succ->GetMarker().HasGrey()) {
+            CreateNewBackEdge(succ, bb);
+        } else if (!succ->GetMarker().HasBlack()) {
+            CollectBackEdges(succ);
+        }
+    }
+    bb->RemoveColor(Marker::Color::GREY);
+    return true;
+}
+
+void LoopAnalyzer::CreateNewBackEdge(BasicBlock *header, BasicBlock *back_edge) {
+    auto *loop = header->GetLoop();
+    if (loop == nullptr) {
+        loop = AllocateLoop(header);
+    }
+
+    loop->AddBackEdge(back_edge);
+    if (!back_edge->IsDominatedBy(header)) {
+        loop->SetIrreducible();
+    }
+}
+
+Loop *LoopAnalyzer::AllocateLoop(BasicBlock *header) {
+    size_t loop_id = holder_.size();
+    assert(std::find_if(holder_.begin(), holder_.end(),
+                        [loop_id](const Loop &loop) { return loop_id == loop.GetId(); }) ==
+           holder_.end());
+    holder_.emplace_back(loop_id, header);
+    return &holder_.back();
+}
+
+void LoopAnalyzer::CleanMarkers() {
+    auto dfs_blocks = Traversal{graph_}.getDFS(true);
+    for (auto bb: dfs_blocks) {
+        bb->RemoveColor(Marker::Color::GREY);
+        bb->RemoveColor(Marker::Color::BLACK);
+    }
+}
+
+bool LoopAnalyzer::PopulateLoops() {
+    auto dfs_blocks = Traversal{graph_}.getDFS(true);
+    for (auto bb: dfs_blocks) {
+        if (bb->GetLoop() == nullptr || !bb->IsLoopHeader()) {
+            continue;
+        }
+        auto loop = bb->GetLoop();
+        if (loop->IsIrreducible()) {
+            for (auto back_edge : loop->GetBackEdges()) {
+                if (back_edge->GetLoop() != loop) {
+                    loop->AddLoopBlock(back_edge);
+                }
+            }
+        } else {
+            bb->AddColor(Marker::Color::BLACK);
+            for (auto back_edge : loop->GetBackEdges()) {
+                if (!LoopSearch(back_edge, loop)) {
+                    std::cerr << "Error! LoopSearch went wrong\n";
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool LoopAnalyzer::LoopSearch(BasicBlock *bb, Loop *loop) {
+    if (!bb->GetMarker().HasBlack()) {
+        bb->AddColor(Marker::Color::BLACK);
+    }
+    if (bb->GetLoop() == nullptr) {
+        loop->AddLoopBlock(bb);
+    } else if (bb->GetLoop()->GetHeader() != loop->GetHeader()) {
+        if (bb->GetLoop()->GetOutLoop() == nullptr) {
+            bb->GetLoop()->SetOutLoop(loop);
+            loop->AddInLoop(bb->GetLoop());
+        }
+    }
+
+    for (auto pred : bb->GetPreds()) {
+        if (!LoopSearch(pred, loop)) {
+            std::cerr << "Error! LoopSearch for predecessor went wrong\n";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool LoopAnalyzer::BuildLoopTree() {
+    Loop *root_loop = AllocateLoop(graph_->GetRoot());
+    root_loop->MarkAsRoot();
+    return std::all_of(holder_.begin(), holder_.end(), [root_loop](Loop &loop) {
+        if (loop.GetOutLoop() == nullptr) {
+            loop.SetOutLoop(root_loop);
+        }
+        return true;
+    });
 }
 
 }  // namespace compiler::passes

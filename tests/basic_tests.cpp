@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Graph.h"
+#include "pass.h"
 
 namespace compiler::test {
 
@@ -42,7 +43,7 @@ TEST(basic_tests, example) {
     Instruction mul{Opcode::MUL, U64, {{v, 0}, {v, 0}, {v, 1}}, 7};
     Instruction addi{Opcode::ADDI, U64, {{v, 1}, {v, 1}, {imm, 1}}, 8};
     Instruction jmp{Opcode::JMP, U64, {{id, 1}}, 7};  // id = 1 ("loop" label)
-    BasicBlock bb2 = BasicBlock::MakeBasicBlock({&mul, &addi, &jmp});
+    BasicBlock bb2 = BasicBlock::MakeBasicBlock({&phi2, &mul, &addi, &jmp});
 
     Instruction ret{Opcode::RET, U64, {{v, 0}}, 9};
     BasicBlock bb3 = BasicBlock::MakeBasicBlock({&ret});
@@ -81,11 +82,13 @@ TEST(basic_tests, example) {
     ASSERT_EQ(movi2.GetNext(), &u32tou64);
     ASSERT_EQ(u32tou64.GetPrev(), &movi2);
     ASSERT_EQ(u32tou64.GetNext(), nullptr);
-    ASSERT_EQ(cmp.GetPrev(), nullptr);
+    ASSERT_EQ(phi1.GetPrev(), nullptr);
+    ASSERT_EQ(cmp.GetPrev(), &phi1);
     ASSERT_EQ(cmp.GetNext(), &ja);
     ASSERT_EQ(ja.GetPrev(), &cmp);
     ASSERT_EQ(ja.GetNext(), nullptr);
-    ASSERT_EQ(mul.GetPrev(), nullptr);
+    ASSERT_EQ(phi2.GetPrev(), nullptr);
+    ASSERT_EQ(mul.GetPrev(), &phi2);
     ASSERT_EQ(mul.GetNext(), &addi);
     ASSERT_EQ(addi.GetPrev(), &mul);
     ASSERT_EQ(addi.GetNext(), &jmp);

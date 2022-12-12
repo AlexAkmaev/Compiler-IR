@@ -16,6 +16,7 @@ void Graph::SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs) {
     for (auto bb: bbs) {
         bb->SetGraph(this);
     }
+    InvalidateDomTree();
 }
 
 BasicBlock *Graph::RemoveBlock(size_t id) {

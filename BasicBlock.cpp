@@ -1,5 +1,6 @@
 #include "include/BasicBlock.h"
 #include "include/Graph.h"
+#include "Loop.h"
 #include <algorithm>
 
 namespace compiler {
@@ -73,6 +74,10 @@ void BasicBlock::RemoveFromPreds(size_t id) {
 bool BasicBlock::IsDominatedBy(BasicBlock *dom) {
     return (std::find_if(dom_blocks_.begin(), dom_blocks_.end(),
                          [dom](BasicBlock *bb) { return dom->GetId() == bb->GetId(); }) != dom_blocks_.end());
+}
+
+bool BasicBlock::IsLoopHeader() const {
+    return loop_->GetHeader()->GetId() == id_;
 }
 
 }  // namespace compiler

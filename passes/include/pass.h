@@ -5,6 +5,7 @@
 #include <set>
 
 #include "Graph.h"
+#include "Loop.h"
 
 namespace compiler::passes {
 
@@ -19,6 +20,7 @@ public:
 protected:
     Graph *graph_;
 };
+
 
 class Traversal final : public Pass {
 public:
@@ -35,11 +37,13 @@ private:
     BlocksVector dfs_bbs_;
 };
 
+
 class DomTree final : public Pass {
 public:
     explicit DomTree(Graph *graph, bool is_slow) : Pass(graph), is_slow_(is_slow) {}
     bool Run() override;
     ~DomTree() override = default;
+
 private:
     bool SlowDomTree();
     bool FastDomTree();
@@ -47,15 +51,29 @@ private:
     static std::set<size_t> CalcDifference(Graph *graph, size_t rm_id, const std::set<size_t> &ids);
     static BasicBlock *CalcImmDominator(const BlocksVector &doms);
 
+private:
     bool is_slow_{false};
 };
+
 
 class LoopAnalyzer final : public Pass {
 public:
     explicit LoopAnalyzer(Graph *graph) : Pass(graph) {}
     bool Run() override;
     ~LoopAnalyzer() override = default;
+
 private:
+    bool CollectBackEdges(BasicBlock *bb);
+    void CreateNewBackEdge(BasicBlock *header, BasicBlock *back_edge);
+    bool PopulateLoops();
+    bool LoopSearch(BasicBlock *bb, Loop *loop);
+    bool BuildLoopTree();
+
+    Loop *AllocateLoop(BasicBlock *header);
+    void CleanMarkers();
+
+private:
+    std::vector<Loop> holder_;
 };
 
 }  // namespace compiler::passes

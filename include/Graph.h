@@ -68,6 +68,18 @@ public:
         return blocks_num_;
     }
 
+    bool IsDomTreeValid() const {
+        return dom_tree_valid_;
+    }
+
+    void MakeDomTreeValid() {
+        dom_tree_valid_ = true;
+    }
+
+    void InvalidateDomTree() {
+        dom_tree_valid_ = false;
+    }
+
     void AddLabel(const std::string &label);
 
     std::optional<size_t> GetLabelId(const std::string &label);
@@ -83,6 +95,8 @@ private:
     size_t blocks_num_{0};
     std::unordered_map<std::string, size_t> label_table_;
     std::unordered_map<std::string, Instruction *> jump_table_;
+
+    bool dom_tree_valid_{false};
 };
 
 }  // namespace compiler
