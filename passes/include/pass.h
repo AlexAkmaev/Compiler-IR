@@ -73,9 +73,11 @@ private:
 
     Loop *AllocateLoop(BasicBlock *header);
     void CleanMarkers();
+    Loop *CreateRootLoop();
 
 private:
     std::vector<Loop> holder_;
+    BasicBlock root_preheader_;
 };
 
 }  // namespace compiler::passes

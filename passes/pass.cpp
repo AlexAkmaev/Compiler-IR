@@ -233,9 +233,7 @@ bool LoopAnalyzer::LoopSearch(BasicBlock *bb, Loop *loop) {
 }
 
 bool LoopAnalyzer::BuildLoopTree() {
-    Loop *root_loop = AllocateLoop(graph_->GetRoot());
-    root_loop->MarkAsRoot();
-    graph_->GetRoot()->SetLoop(root_loop);
+    Loop *root_loop = CreateRootLoop();
     auto dfs_blocks = Traversal{graph_}.getDFS(true);
     for (auto bb: dfs_blocks) {
         if (bb->GetLoop() == nullptr) {
@@ -246,6 +244,21 @@ bool LoopAnalyzer::BuildLoopTree() {
         }
     }
     return true;
+}
+
+Loop *LoopAnalyzer::CreateRootLoop() {
+    Loop *root_loop;
+    if (graph_->GetRoot()->GetLoop() != nullptr) {
+        root_preheader_ = BasicBlock{};
+        graph_->MoveRoot(&root_preheader_);
+        root_loop = AllocateLoop(&root_preheader_);
+        root_loop->SetPreHeader(&root_preheader_);
+    } else {
+        root_loop = AllocateLoop(graph_->GetRoot());
+    }
+    root_loop->MarkAsRoot();
+    graph_->GetRoot()->SetLoop(root_loop);
+    return root_loop;
 }
 
 }  // namespace compiler::passes

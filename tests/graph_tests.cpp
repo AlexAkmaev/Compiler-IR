@@ -697,6 +697,233 @@ TEST_F(GraphTest, Example_3_Loop_Analyzer) {
     }
 }
 
+namespace G4_BB {
+uint8_t A = 0, C = 1, B = 2, D = 3, E = 4;
+}
+
+TEST_F(GraphTest, Example_4_Loop_Analyzer) {
+    /*
+     *    `          A
+     *               ↓
+     *               B ←--------┐
+     *             ↙   ↘        |
+     *           C       D      |
+     *                     ↘    |
+     *                       E -┘
+     *
+     */
+    BasicBlock A, B, C, D, E;
+
+    BasicBlock::AddEdge(&A, &B);
+
+    BasicBlock::AddEdge(&B, &C);
+    BasicBlock::AddEdge(&B, &D);
+
+    BasicBlock::AddEdge(&D, &E);
+
+    BasicBlock::AddEdge(&E, &B);
+
+    Graph graph{&A, &C, 0};
+    graph.SetGraphForBasicBlocks({&A, &B, &C, &D, &E});
+
+    EXPECT_EQ(A.GetId(), G4_BB::A);
+    EXPECT_EQ(C.GetId(), G4_BB::C);
+    EXPECT_EQ(B.GetId(), G4_BB::B);
+    EXPECT_EQ(D.GetId(), G4_BB::D);
+    EXPECT_EQ(E.GetId(), G4_BB::E);
+
+    passes::LoopAnalyzer loopAnalyzer{&graph};
+    ASSERT_TRUE(loopAnalyzer.Run());
+    ASSERT_TRUE(graph.IsLoopAnalysisValid());
+    ASSERT_EQ(graph.GetRootLoop()->GetId(), 1);  // 2 loops in graph
+
+    {
+        // Root loop
+        SCOPED_TRACE("A");
+        BasicBlock *header = graph.FindBlock(G4_BB::A);
+        // A loop blocks are: A, C
+        TestLoopBlocks(header, 1, G4_BB::A, G4_BB::C);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 0);
+    }
+    {
+        // Loop with header B
+        SCOPED_TRACE("B");
+        BasicBlock *header = graph.FindBlock(G4_BB::B);
+        // B loop blocks are: B, D, E
+        TestLoopBlocks(header, 0, G4_BB::B, G4_BB::D, G4_BB::E);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), G4_BB::E);
+    }
+}
+
+namespace G5_BB {
+uint8_t A = 0, F = 1, B = 2, C = 3, D = 4, E = 5;
+}
+
+TEST_F(GraphTest, Example_5_Loop_Analyzer) {
+    /*
+     *    `          A
+     *               ↓
+     *               B
+     *             ↙   ↖
+     *           C → D → E
+     *             ↘ ↓
+     *               F
+     *
+     */
+    BasicBlock A, B, C, D, E, F;
+
+    BasicBlock::AddEdge(&A, &B);
+
+    BasicBlock::AddEdge(&B, &C);
+
+    BasicBlock::AddEdge(&C, &F);
+    BasicBlock::AddEdge(&C, &D);
+
+    BasicBlock::AddEdge(&D, &F);
+    BasicBlock::AddEdge(&D, &E);
+
+    BasicBlock::AddEdge(&E, &B);
+
+    Graph graph{&A, &F, 0};
+    graph.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F});
+
+    EXPECT_EQ(A.GetId(), G5_BB::A);
+    EXPECT_EQ(F.GetId(), G5_BB::F);
+    EXPECT_EQ(B.GetId(), G5_BB::B);
+    EXPECT_EQ(C.GetId(), G5_BB::C);
+    EXPECT_EQ(D.GetId(), G5_BB::D);
+    EXPECT_EQ(E.GetId(), G5_BB::E);
+
+    passes::LoopAnalyzer loopAnalyzer{&graph};
+    ASSERT_TRUE(loopAnalyzer.Run());
+    ASSERT_TRUE(graph.IsLoopAnalysisValid());
+    ASSERT_EQ(graph.GetRootLoop()->GetId(), 1);  // 2 loops in graph
+
+    {
+        // Root loop
+        SCOPED_TRACE("A");
+        BasicBlock *header = graph.FindBlock(G5_BB::A);
+        // A loop blocks are: A, F
+        TestLoopBlocks(header, 1, G5_BB::A, G5_BB::F);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 0);
+    }
+    {
+        // Loop with header B
+        SCOPED_TRACE("B");
+        BasicBlock *header = graph.FindBlock(G5_BB::B);
+        // B loop blocks are: B, C, D, E
+        TestLoopBlocks(header, 0, G5_BB::B, G5_BB::C, G5_BB::D, G5_BB::E);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), G5_BB::E);
+    }
+}
+
+namespace G6_BB {
+uint8_t A = 0, H = 1, B = 2, C = 3, D = 4, E = 5, F = 6, G = 7;
+}
+
+TEST_F(GraphTest, Example_6_Loop_Analyzer) {
+    /*
+     *    `          A ←---------┐
+     *               ↓           |
+     *               B ←-----┐   |
+     *             ↙   ↘     |   |
+     *           C       D   |   |
+     *         ↙   ↘   ↙     |   |
+     *       H       E       |   |
+     *               ↓       |   |
+     *               F ------┘   |
+     *               ↓           |
+     *               G ----------┘
+     *
+     */
+    BasicBlock A, B, C, D, E, F, G, H;
+
+    BasicBlock::AddEdge(&A, &B);
+
+    BasicBlock::AddEdge(&B, &C);
+    BasicBlock::AddEdge(&B, &D);
+
+    BasicBlock::AddEdge(&C, &H);
+    BasicBlock::AddEdge(&C, &E);
+
+    BasicBlock::AddEdge(&D, &E);
+
+    BasicBlock::AddEdge(&E, &F);
+
+    BasicBlock::AddEdge(&F, &G);
+    BasicBlock::AddEdge(&F, &B);
+
+    BasicBlock::AddEdge(&G, &A);
+
+    Graph graph{&A, &H, 0};
+    graph.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F, &G, &H});
+
+    EXPECT_EQ(A.GetId(), G6_BB::A);
+    EXPECT_EQ(H.GetId(), G6_BB::H);
+    EXPECT_EQ(B.GetId(), G6_BB::B);
+    EXPECT_EQ(C.GetId(), G6_BB::C);
+    EXPECT_EQ(D.GetId(), G6_BB::D);
+    EXPECT_EQ(E.GetId(), G6_BB::E);
+    EXPECT_EQ(F.GetId(), G6_BB::F);
+    EXPECT_EQ(G.GetId(), G6_BB::G);
+
+    passes::LoopAnalyzer loopAnalyzer{&graph};
+    ASSERT_TRUE(loopAnalyzer.Run());
+    ASSERT_TRUE(graph.IsLoopAnalysisValid());
+    ASSERT_EQ(graph.GetRootLoop()->GetId(), 2);  // 3 loops in graph
+
+    {
+        // Root loop
+        SCOPED_TRACE("PreHeader");
+        ASSERT_NE(graph.GetRootLoop()->GetPreHeader(), nullptr);
+        BasicBlock *header = graph.GetRootLoop()->GetPreHeader();
+        // PreHeader loop blocks are: PreHeader, H
+        TestLoopBlocks(header, 2, header->GetId(), G6_BB::H);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 0);
+    }
+    {
+        // Loop with header A
+        SCOPED_TRACE("A");
+        BasicBlock *header = graph.FindBlock(G6_BB::A);
+        // A loop blocks are: A, G
+        TestLoopBlocks(header, 0, G6_BB::A, G6_BB::G);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), G6_BB::G);
+    }
+    {
+        // Loop with header B
+        SCOPED_TRACE("B");
+        BasicBlock *header = graph.FindBlock(G6_BB::B);
+        // B loop blocks are: B, C, D, E, F
+        TestLoopBlocks(header, 1, G6_BB::B, G6_BB::C, G6_BB::D, G6_BB::E, G6_BB::F);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), G6_BB::F);
+    }
+}
+
 }  // namespace compiler::test
 
 int main(int argc, char **argv) {

@@ -32,6 +32,12 @@ public:
         return root_;
     }
 
+    void MoveRoot(BasicBlock *new_root) {
+        BasicBlock::AddEdge(new_root, root_);
+        SetGraphForBasicBlocks({new_root});
+        root_ = new_root;
+    }
+
     void SetEnd(BasicBlock *end) {
         end->SetId(1);
         end_ = end;

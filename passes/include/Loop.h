@@ -20,6 +20,14 @@ public:
         return header_;
     }
 
+    void SetPreHeader(BasicBlock *preheader) {
+        preheader_ = preheader;
+    }
+
+    [[nodiscard]] BasicBlock *GetPreHeader() const {
+        return preheader_;
+    }
+
     void AddBackEdge(BasicBlock *edge_bb) {
         assert(std::find_if(back_edges_.begin(), back_edges_.end(),
                             [edge_bb](BasicBlock *bb) { return edge_bb->GetId() == bb->GetId(); }) ==
@@ -81,7 +89,8 @@ public:
 private:
     size_t id_;
 
-    BasicBlock *header_;
+    BasicBlock *header_{nullptr};
+    BasicBlock *preheader_{nullptr};
     BlocksVector back_edges_;
     BlocksVector blocks_;
     std::vector<Loop *> in_loops_;
