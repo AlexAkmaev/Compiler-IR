@@ -4,12 +4,14 @@
 #include <unordered_map>
 #include <map>
 #include <optional>
+#include <cassert>
 
 #include "BasicBlock.h"
 
 namespace compiler {
 
 class BasicBlock;
+class Traversal;
 
 class Graph final {
 public:
@@ -48,6 +50,18 @@ public:
 
     void RestoreBlock(BasicBlock *bb);
 
+    bool IsRpoValid() const {
+        return rpo_valid_;
+    }
+
+    void MakeRpoValid() {
+        rpo_valid_ = true;
+    }
+
+    void InvalidateRpo() {
+        rpo_valid_ = false;
+    }
+
     void SetParamsNum(uint8_t params_num) {
         params_num_ = params_num;
     }
@@ -80,6 +94,23 @@ public:
         dom_tree_valid_ = false;
     }
 
+    bool IsLoopAnalysisValid() const {
+        return loop_analysis_valid_;
+    }
+
+    void MakeLoopAnalysisValid() {
+        loop_analysis_valid_ = true;
+    }
+
+    void InvalidateLoopAnalysis() {
+        loop_analysis_valid_ = false;
+    }
+
+    Loop *GetRootLoop() {
+        assert(loop_analysis_valid_);
+        return root_->GetLoop();
+    }
+
     void AddLabel(const std::string &label);
 
     std::optional<size_t> GetLabelId(const std::string &label);
@@ -96,7 +127,9 @@ private:
     std::unordered_map<std::string, size_t> label_table_;
     std::unordered_map<std::string, Instruction *> jump_table_;
 
+    bool rpo_valid_{false};
     bool dom_tree_valid_{false};
+    bool loop_analysis_valid_{false};
 };
 
 }  // namespace compiler

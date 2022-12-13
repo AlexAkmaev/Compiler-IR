@@ -8,7 +8,13 @@ namespace compiler::passes {
 bool Traversal::Run() {
     dfs_bbs_.reserve(graph_->GetBlocksNum());
     IdSet discovered_bbs;
-    return DFSWalk(graph_->GetRoot(), discovered_bbs);
+    bool res = DFSWalk(graph_->GetRoot(), discovered_bbs);
+    if (res) {
+        graph_->MakeRpoValid();
+    } else {
+        std::cerr << "Error! DFS Walk went wrong\n";
+    }
+    return res;
 }
 
 bool Traversal::DFSWalk(BasicBlock *bb, IdSet &discovered_bbs) {
@@ -24,14 +30,14 @@ bool Traversal::DFSWalk(BasicBlock *bb, IdSet &discovered_bbs) {
 }
 
 BlocksVector Traversal::getDFS(bool need_to_rerun) {
-    if (need_to_rerun) {
+    if (need_to_rerun || !graph_->IsRpoValid()) {
         Run();
     }
     return dfs_bbs_;
 }
 
 BlocksVector Traversal::getRPO(bool need_to_rerun) {
-    if (need_to_rerun) {
+    if (need_to_rerun || !graph_->IsRpoValid()) {
         Run();
     }
     BlocksVector rpo_bbs = dfs_bbs_;
@@ -128,6 +134,7 @@ bool LoopAnalyzer::Run() {
         std::cerr << "Error! BuildLoopTree went wrong\n";
         return false;
     }
+    graph_->MakeLoopAnalysisValid();
     return true;
 }
 
@@ -163,12 +170,13 @@ Loop *LoopAnalyzer::AllocateLoop(BasicBlock *header) {
                         [loop_id](const Loop &loop) { return loop_id == loop.GetId(); }) ==
            holder_.end());
     holder_.emplace_back(loop_id, header);
+    holder_.back().AddLoopBlock(header);
     return &holder_.back();
 }
 
 void LoopAnalyzer::CleanMarkers() {
     auto dfs_blocks = Traversal{graph_}.getDFS(true);
-    for (auto bb: dfs_blocks) {
+    for (auto *bb: dfs_blocks) {
         bb->RemoveColor(Marker::Color::GREY);
         bb->RemoveColor(Marker::Color::BLACK);
     }
@@ -195,6 +203,7 @@ bool LoopAnalyzer::PopulateLoops() {
                     return false;
                 }
             }
+            CleanMarkers();
         }
     }
     return true;
@@ -203,20 +212,21 @@ bool LoopAnalyzer::PopulateLoops() {
 bool LoopAnalyzer::LoopSearch(BasicBlock *bb, Loop *loop) {
     if (!bb->GetMarker().HasBlack()) {
         bb->AddColor(Marker::Color::BLACK);
-    }
-    if (bb->GetLoop() == nullptr) {
-        loop->AddLoopBlock(bb);
-    } else if (bb->GetLoop()->GetHeader() != loop->GetHeader()) {
-        if (bb->GetLoop()->GetOutLoop() == nullptr) {
-            bb->GetLoop()->SetOutLoop(loop);
-            loop->AddInLoop(bb->GetLoop());
-        }
-    }
 
-    for (auto pred : bb->GetPreds()) {
-        if (!LoopSearch(pred, loop)) {
-            std::cerr << "Error! LoopSearch for predecessor went wrong\n";
-            return false;
+        if (bb->GetLoop() == nullptr) {
+            loop->AddLoopBlock(bb);
+        } else if (bb->GetLoop()->GetHeader() != loop->GetHeader()) {
+            if (bb->GetLoop()->GetOutLoop() == nullptr) {
+                bb->GetLoop()->SetOutLoop(loop);
+                loop->AddInLoop(bb->GetLoop());
+            }
+        }
+
+        for (auto *pred : bb->GetPreds()) {
+            if (!LoopSearch(pred, loop)) {
+                std::cerr << "Error! LoopSearch for predecessor went wrong\n";
+                return false;
+            }
         }
     }
     return true;
@@ -225,12 +235,17 @@ bool LoopAnalyzer::LoopSearch(BasicBlock *bb, Loop *loop) {
 bool LoopAnalyzer::BuildLoopTree() {
     Loop *root_loop = AllocateLoop(graph_->GetRoot());
     root_loop->MarkAsRoot();
-    return std::all_of(holder_.begin(), holder_.end(), [root_loop](Loop &loop) {
-        if (loop.GetOutLoop() == nullptr) {
-            loop.SetOutLoop(root_loop);
+    graph_->GetRoot()->SetLoop(root_loop);
+    auto dfs_blocks = Traversal{graph_}.getDFS(true);
+    for (auto bb: dfs_blocks) {
+        if (bb->GetLoop() == nullptr) {
+            root_loop->AddLoopBlock(bb);
+        } else if (bb->GetLoop()->GetOutLoop() == nullptr) {
+            bb->GetLoop()->SetOutLoop(root_loop);
+            root_loop->AddInLoop(bb->GetLoop());
         }
-        return true;
-    });
+    }
+    return true;
 }
 
 }  // namespace compiler::passes

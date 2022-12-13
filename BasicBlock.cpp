@@ -77,6 +77,7 @@ bool BasicBlock::IsDominatedBy(BasicBlock *dom) {
 }
 
 bool BasicBlock::IsLoopHeader() const {
+    assert(loop_ != nullptr && loop_->GetHeader() != nullptr);
     return loop_->GetHeader()->GetId() == id_;
 }
 

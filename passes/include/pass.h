@@ -58,7 +58,9 @@ private:
 
 class LoopAnalyzer final : public Pass {
 public:
-    explicit LoopAnalyzer(Graph *graph) : Pass(graph) {}
+    explicit LoopAnalyzer(Graph *graph) : Pass(graph) {
+        holder_.reserve(graph->GetBlocksNum());  // Allocate memory
+    }
     bool Run() override;
     ~LoopAnalyzer() override = default;
 

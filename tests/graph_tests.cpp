@@ -82,7 +82,7 @@ public:
 
     void SetSecondGraph() {
         /*
-         *    `          A
+         *               A
          *               ↓
          *           ┌-→ B
          *           |   ↓  ↘
@@ -346,14 +346,14 @@ TEST_F(GraphTest, Example3_Rpo) {
  */
 template<typename...Args>
 void TestBlockDominators(Graph *graph, uint8_t testId, Args...args) {
-    std::vector<uint8_t> dominators{{ args... }};
+    std::vector<uint8_t> dominators{{args...}};
     auto bb_dom_blocks = graph->FindBlock(testId)->GetDomBlocks();
     ASSERT_EQ(bb_dom_blocks.size(), dominators.size());
     std::set<size_t> bbs_id;
     std::transform(bb_dom_blocks.begin(), bb_dom_blocks.end(),
                    std::inserter(bbs_id, bbs_id.end()), [](BasicBlock *bb) {
-        return bb->GetId();
-    });
+                return bb->GetId();
+            });
     ASSERT_TRUE(std::all_of(dominators.begin(), dominators.end(), [&bbs_id](size_t id) {
         bool is_found = bbs_id.find(id) != bbs_id.end();
         EXPECT_TRUE(is_found) << "Error! BasicBlock with id = " << id << " wasn't found among dominators";
@@ -544,6 +544,156 @@ TEST_F(GraphTest, Example3_Dom_Tree) {
         // I dominators are: A, B
         TestBlockDominators(&graph, I, A, B);
         ASSERT_EQ(graph.FindBlock(I)->GetImmDom()->GetId(), B);
+    }
+}
+
+/*
+ =======================================================
+ ================= LoopAnalyzer tests ==================
+ =======================================================
+ */
+template<typename...Args>
+void TestLoopBlocks(BasicBlock *header, uint8_t loop_id, Args...args) {
+    std::vector<BasicBlock *> loop_blocks{{header->GetGraph()->FindBlock(args)...}};
+    Loop *loop = header->GetLoop();
+    auto loop_blocks_to_test = loop->GetLoopBlocks();
+    ASSERT_EQ(loop->GetId(), loop_id);
+    ASSERT_EQ(loop_blocks_to_test.size(), loop_blocks.size());
+    std::set<size_t> bbs_id;
+    std::transform(loop_blocks_to_test.begin(), loop_blocks_to_test.end(),
+                   std::inserter(bbs_id, bbs_id.end()), [](BasicBlock *bb) {
+                return bb->GetId();
+            });
+    ASSERT_TRUE(std::all_of(loop_blocks.begin(), loop_blocks.end(), [&bbs_id, loop_id](BasicBlock *bb) {
+        bool is_found = bbs_id.find(bb->GetId()) != bbs_id.end();
+        EXPECT_EQ(loop_id, bb->GetLoop()->GetId()) << "Error! BasicBlock with id = " << bb->GetId()
+                                                   << " has wrong loop id = " << loop_id;
+        EXPECT_TRUE(is_found) << "Error! BasicBlock with id = " << bb->GetId() << " wasn't found in loop " << loop_id;
+        return is_found;
+    }));
+}
+
+TEST_F(GraphTest, Example_1_Loop_Analyzer) {
+    using namespace G1_BB;
+    Graph graph = GetFirstGraph();
+    passes::LoopAnalyzer loopAnalyzer{&graph};
+    ASSERT_TRUE(loopAnalyzer.Run());
+    ASSERT_TRUE(graph.IsLoopAnalysisValid());
+    ASSERT_EQ(graph.GetRootLoop()->GetId(), 0);  // 1 loop in graph
+
+    {
+        // Root loop
+        SCOPED_TRACE("A");
+        BasicBlock *header = graph.FindBlock(A);
+        // A loop blocks are: A, B, C, D, E, F, G
+        TestLoopBlocks(header, 0, A, B, C, D, E, F, G);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 0);
+    }
+
+}
+
+TEST_F(GraphTest, Example_2_Loop_Analyzer) {
+    using namespace G2_BB;
+    Graph graph = GetSecondGraph();
+    passes::LoopAnalyzer loopAnalyzer{&graph};
+    ASSERT_TRUE(loopAnalyzer.Run());
+    ASSERT_TRUE(graph.IsLoopAnalysisValid());
+    ASSERT_EQ(graph.GetRootLoop()->GetId(), 3);  // 4 loops in graph
+
+    {
+        // Root loop
+        SCOPED_TRACE("A");
+        BasicBlock *header = graph.FindBlock(A);
+        // A loop blocks are: A, I, K
+        TestLoopBlocks(header, 3, A, I, K);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 0);
+    }
+    {
+        // Loop with header B
+        SCOPED_TRACE("B");
+        BasicBlock *header = graph.FindBlock(B);
+        // B loop blocks are: B, J, G, H
+        TestLoopBlocks(header, 0, B, J, G, H);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), H);
+    }
+    {
+        // Loop with header E
+        SCOPED_TRACE("E");
+        BasicBlock *header = graph.FindBlock(E);
+        // E loop blocks are: E, F
+        TestLoopBlocks(header, 1, E, F);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), F);
+    }
+    {
+        // Loop with header C
+        SCOPED_TRACE("C");
+        BasicBlock *header = graph.FindBlock(C);
+        // C loop blocks are: C, D
+        TestLoopBlocks(header, 2, C, D);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), D);
+    }
+}
+
+TEST_F(GraphTest, Example_3_Loop_Analyzer) {
+    using namespace G3_BB;
+    Graph graph = GetThirdGraph();
+    passes::LoopAnalyzer loopAnalyzer{&graph};
+    ASSERT_TRUE(loopAnalyzer.Run());
+    ASSERT_TRUE(graph.IsLoopAnalysisValid());
+    ASSERT_EQ(graph.GetRootLoop()->GetId(), 2);  // 3 loops in graph
+
+    {
+        // Root loop
+        SCOPED_TRACE("A");
+        BasicBlock *header = graph.FindBlock(A);
+        // A loop blocks are: A, H, D, I
+        TestLoopBlocks(header, 2, A, H, D, I);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 0);
+    }
+    {
+        // Loop with header C
+        SCOPED_TRACE("C");
+        BasicBlock *header = graph.FindBlock(C);
+        // C loop blocks are: C, G
+        TestLoopBlocks(header, 0, C, G);
+        ASSERT_TRUE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), G);
+    }
+    {
+        // Loop with header B
+        SCOPED_TRACE("B");
+        BasicBlock *header = graph.FindBlock(B);
+        // B loop blocks are: B, E, F
+        TestLoopBlocks(header, 1, B, E, F);
+        ASSERT_FALSE(header->GetLoop()->IsIrreducible());
+
+        auto back_edges = header->GetLoop()->GetBackEdges();
+        ASSERT_EQ(back_edges.size(), 1);
+        ASSERT_EQ(back_edges.at(0)->GetId(), F);
     }
 }
 

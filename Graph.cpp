@@ -16,11 +16,14 @@ void Graph::SetGraphForBasicBlocks(std::initializer_list<BasicBlock *> bbs) {
     for (auto bb: bbs) {
         bb->SetGraph(this);
     }
+    InvalidateRpo();
     InvalidateDomTree();
+    InvalidateLoopAnalysis();
 }
 
 BasicBlock *Graph::RemoveBlock(size_t id) {
     auto *rm_bb = FindBlock(id);
+    assert(rm_bb != nullptr);
     for (auto *bb : rm_bb->GetPreds()) {
         bb->RemoveFromSuccs(rm_bb->GetId());
     }
