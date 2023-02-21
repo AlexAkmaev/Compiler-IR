@@ -7,6 +7,8 @@
 
 namespace compiler {
 
+class Instruction;
+
 using vreg_t = uint16_t;
 
 enum class Opcode : uint8_t {
@@ -34,6 +36,7 @@ enum class Opcode : uint8_t {
     JNE,
     JO,
     JMP,
+    CALL,
     RET
 };
 
@@ -54,7 +57,7 @@ public:
         a, v, imm, id  // a - func parameter, v - virtual reg
     };
 
-    InstrArg(Type type, vreg_t num) : num_(num), type_(type) {}
+    InstrArg(Type type, vreg_t num, Instruction* target = nullptr);
 
     [[nodiscard]] vreg_t num() const {
         return num_;
@@ -64,13 +67,18 @@ public:
         return type_;
     }
 
+    [[nodiscard]] Instruction *target() const {
+        return target_;
+    }
+
     bool operator==(const InstrArg &arg) const {
         return type_ == arg.type_ && num_ == arg.num_;
     }
 
 private:
-    size_t num_;
     Type type_;
+    size_t num_;  // number of virtual register, or the value of immediate, or the Instruction id of target
+    Instruction *target_;  // id of Instruction to which the jump will happen
 };
 
 // The specialized hash function for `unordered_map` keys

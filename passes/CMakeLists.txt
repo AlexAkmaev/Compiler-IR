@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 set(PASSES_SOURCES
     pass.cpp
+    ir_builder.cpp
 )
 
 add_library(passes_lib ${PASSES_SOURCES})

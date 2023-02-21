@@ -1,6 +1,6 @@
-#include "include/BasicBlock.h"
-#include "include/Graph.h"
-#include "Loop.h"
+#include "include/basic_block.h"
+#include "include/graph.h"
+#include "loop.h"
 #include <algorithm>
 
 namespace compiler {

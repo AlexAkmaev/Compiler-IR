@@ -6,7 +6,7 @@
 #include <optional>
 #include <cassert>
 
-#include "BasicBlock.h"
+#include "basic_block.h"
 
 namespace compiler {
 

@@ -4,8 +4,8 @@
 #include <unordered_set>
 #include <set>
 
-#include "Graph.h"
-#include "Loop.h"
+#include "graph.h"
+#include "loop.h"
 
 namespace compiler::passes {
 

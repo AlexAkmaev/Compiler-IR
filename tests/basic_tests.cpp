@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "Graph.h"
+#include "graph.h"
 #include "pass.h"
+#include "instruction.h"
 
 namespace compiler::test {
 
@@ -29,24 +30,24 @@ TEST(basic_tests, example) {
     
     // Creating Graph
 
+    Instruction ret{Opcode::RET, U64, {{v, 0}}, 9};  // done label
+    BasicBlock bb3 = BasicBlock::MakeBasicBlock({&ret});
+
     Instruction movi1{Opcode::MOVI, U64, {{v, 0}, {imm, 1}}, 0};
     Instruction movi2{Opcode::MOVI, U64, {{v, 1}, {imm, 2}}, 1};
     Instruction u32tou64{Opcode::CAST, U64, {{v, 2}, {a, 0}}, 2};
     BasicBlock bb0 = BasicBlock::MakeBasicBlock({&movi1, &movi2, &u32tou64});
 
     PhiInstruction phi1 = PhiInstruction::CreatePhi(U64, 3);
-    Instruction cmp{Opcode::CMP, U64, {{v, 1}, {v, 2}}, 4};
-    Instruction ja{Opcode::JA, U64, {{id, 0}}, 5};  // id = 0 ("done" label)
+    Instruction cmp{Opcode::CMP, U64, {{v, 1}, {v, 2}}, 4};  // loop label
+    Instruction ja{Opcode::JA, U64, {{id, 9, &ret}}, 5};  // id = 9 ("done" label)
     BasicBlock bb1 = BasicBlock::MakeBasicBlock({&phi1, &cmp, &ja});
 
     PhiInstruction phi2 = PhiInstruction::CreatePhi(U64, 6);
     Instruction mul{Opcode::MUL, U64, {{v, 0}, {v, 0}, {v, 1}}, 7};
     Instruction addi{Opcode::ADDI, U64, {{v, 1}, {v, 1}, {imm, 1}}, 8};
-    Instruction jmp{Opcode::JMP, U64, {{id, 1}}, 7};  // id = 1 ("loop" label)
+    Instruction jmp{Opcode::JMP, U64, {{id, 4, &cmp}}, 7};  // id = 4 ("loop" label)
     BasicBlock bb2 = BasicBlock::MakeBasicBlock({&phi2, &mul, &addi, &jmp});
-
-    Instruction ret{Opcode::RET, U64, {{v, 0}}, 9};
-    BasicBlock bb3 = BasicBlock::MakeBasicBlock({&ret});
 
     BasicBlock bb_end = BasicBlock::MakeBasicBlock({});
 

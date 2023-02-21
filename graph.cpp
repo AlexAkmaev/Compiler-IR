@@ -1,5 +1,5 @@
-#include "include/Graph.h"
-#include "include/BasicBlock.h"
+#include "include/graph.h"
+#include "include/basic_block.h"
 #include "passes/include/pass.h"
 #include <algorithm>
 

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+
 #include "common.h"
 
 namespace compiler {
@@ -23,6 +24,10 @@ public:
                 Instruction *prev,
                 Instruction *next) : op_(op), type_(type), args_(std::move(args)), id_(id), prev_(prev),
                                      next_(next) {}
+
+    Opcode GetOpcode() const {
+        return op_;
+    }
 
     void SetArgs(const std::vector<InstrArg> &args) {
         args_ = args;
@@ -88,6 +93,30 @@ public:
         return bb_;
     }
 
+    bool IsControlFlow() {
+        return op_ >= Opcode::JA;
+    }
+
+    bool IsJump() {
+        return op_ == Opcode::JMP;
+    }
+
+    bool IsConditionalBranch() {
+        return op_ >= Opcode::JA && op_ <= Opcode::JNE;
+    }
+
+    bool IsReturn() {
+        return op_ == Opcode::RET;
+    }
+
+    bool IsTarget() const {
+        return is_target_;
+    }
+
+    void SetIsTarget(bool is_tgt) {
+        is_target_ = is_tgt;
+    }
+
 protected:
     Opcode op_{Opcode::NONE};
     InstrType type_{InstrType::I32};
@@ -104,6 +133,7 @@ protected:
 
 private:
     Instruction *def_;
+    bool is_target_{false};  // is this instruction is target to some jump
 };
 
 class PhiInstruction final : public Instruction {

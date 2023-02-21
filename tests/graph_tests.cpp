@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "Graph.h"
+#include "graph.h"
 #include "pass.h"
 
 namespace compiler::test {

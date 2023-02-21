@@ -1,8 +1,8 @@
 #ifndef OPTIMIZER_BASICBLOCK_H
 #define OPTIMIZER_BASICBLOCK_H
 
-#include "Instruction.h"
-#include "Marker.h"
+#include "instruction.h"
+#include "marker.h"
 #include <set>
 
 namespace compiler {
