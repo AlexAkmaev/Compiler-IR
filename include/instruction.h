@@ -53,14 +53,6 @@ public:
         return type_;
     }
 
-    void SetDef(Instruction *def) {
-        def_ = def;
-    }
-
-    Instruction *GetDef() {
-        return def_;
-    }
-
     void AddUses(std::initializer_list<Instruction *> uses) {
         uses_.insert(uses_.end(), uses.begin(), uses.end());
     }
@@ -109,6 +101,18 @@ public:
         return op_ == Opcode::RET;
     }
 
+    bool IsCall() {
+        return op_ == Opcode::CALL;
+    }
+
+    bool IsConstant() {
+        return op_ == Opcode::CONSTANT;
+    }
+
+    bool IsParameter() {
+        return op_ == Opcode::PARAMETER;
+    }
+
     bool IsTarget() const {
         return is_target_;
     }
@@ -132,7 +136,6 @@ protected:
     BasicBlock *bb_{nullptr};
 
 private:
-    Instruction *def_;
     bool is_target_{false};  // is this instruction is target to some jump
 };
 
@@ -163,6 +166,37 @@ private:
 
     PhiInstruction(InstrType type, size_t id, Instruction *prev, Instruction *next, std::vector<Instruction *> &&defs)
             : Instruction(Opcode::PHI, type, {}, id, prev, next), defs_(std::move(defs)) {}
+
+    std::vector<Instruction *> defs_;
+};
+
+class CallInstruction final : public Instruction {
+public:
+    template<typename... Defs>
+    static CallInstruction CreateCall(InstrType type, size_t id, Defs... defs) {
+        return CallInstruction(type, id, std::vector<Instruction *>{{defs...}});
+    }
+
+    template<typename... Defs>
+    static CallInstruction CreateCall(InstrType type, size_t id, Instruction *prev, Instruction *next, Defs... defs) {
+        return CallInstruction(type, id, prev, next, std::vector<Instruction *>{{defs...}});
+    }
+
+    void AddDefs(std::initializer_list<Instruction *> defs) {
+        defs_.insert(defs_.end(), defs.begin(), defs.end());
+    }
+
+    std::vector<Instruction *> GetDefs() {
+        return defs_;
+    }
+
+private:
+    CallInstruction(InstrType type, size_t id, std::vector<Instruction *> &&defs) : Instruction(Opcode::CALL, type, {},
+                                                                                               id),
+                                                                                   defs_(std::move(defs)) {}
+
+    CallInstruction(InstrType type, size_t id, Instruction *prev, Instruction *next, std::vector<Instruction *> &&defs)
+            : Instruction(Opcode::CALL, type, {}, id, prev, next), defs_(std::move(defs)) {}
 
     std::vector<Instruction *> defs_;
 };

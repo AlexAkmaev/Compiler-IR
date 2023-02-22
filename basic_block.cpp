@@ -1,7 +1,9 @@
+#include <algorithm>
+
+#include "include/storage.h"
 #include "include/basic_block.h"
 #include "include/graph.h"
 #include "loop.h"
-#include <algorithm>
 
 namespace compiler {
 
@@ -79,6 +81,34 @@ bool BasicBlock::IsDominatedBy(BasicBlock *dom) {
 bool BasicBlock::IsLoopHeader() const {
     assert(loop_ != nullptr && loop_->GetHeader() != nullptr);
     return loop_->GetHeader()->GetId() == id_;
+}
+
+InsnsVec BasicBlock::GetAllInstrs() {
+    InsnsVec instrs;
+    Instruction *it_instr = first_instr_;
+    while (it_instr != nullptr) {
+        instrs.push_back(it_instr);
+        it_instr = it_instr->GetNext();
+    }
+    return instrs;
+}
+
+std::pair<BasicBlock *, BasicBlock *> BasicBlock::SplitOn(Instruction *insn) {
+    if (insn->GetBasicBlock() != this) {
+        std::cerr << "Error! Cannot split basic block on the given instruction.\n";
+        return {};
+    }
+    InsnsVec second_bb_instrs;
+    Instruction *it_instr = insn->GetNext();
+    while (it_instr != nullptr) {
+        second_bb_instrs.push_back(it_instr);
+        it_instr = it_instr->GetNext();
+    }
+    insn->SetNext(nullptr);
+    bbs_storage.AddElem(MakeBasicBlock(second_bb_instrs));
+    BasicBlock *second_bb = bbs_storage.GetBackPointer();
+    AddEdge(this, second_bb);
+    return std::make_pair(this, second_bb);
 }
 
 }  // namespace compiler

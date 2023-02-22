@@ -8,6 +8,7 @@
 namespace compiler {
 
 class Instruction;
+class Graph;
 
 using vreg_t = uint16_t;
 
@@ -15,6 +16,8 @@ enum class Opcode : uint8_t {
     NONE,
     PHI,
     CAST,
+    CONSTANT,
+    PARAMETER,
     ADDI,
     ADD,
     SUBI,
@@ -54,10 +57,10 @@ enum class InstrType : uint8_t {
 class InstrArg {
 public:
     enum Type {
-        a, v, imm, id  // a - func parameter, v - virtual reg
+        a, v, imm, id, callee  // a - func parameter, v - virtual reg
     };
 
-    InstrArg(Type type, vreg_t num, Instruction* target = nullptr);
+    InstrArg(Type type, vreg_t num, Instruction* target = nullptr, Graph *graph = nullptr, Instruction *def = nullptr);
 
     [[nodiscard]] vreg_t num() const {
         return num_;
@@ -71,14 +74,20 @@ public:
         return target_;
     }
 
+    [[nodiscard]] Graph *get_callee() const {
+        return callee_;
+    }
+
     bool operator==(const InstrArg &arg) const {
-        return type_ == arg.type_ && num_ == arg.num_;
+        return type_ == arg.type_ && num_ == arg.num_ && target_ == arg.target_;
     }
 
 private:
     Type type_;
     size_t num_;  // number of virtual register, or the value of immediate, or the Instruction id of target
     Instruction *target_;  // id of Instruction to which the jump will happen
+    Graph *callee_;  // callee graph in case if instruction itself is call
+    Instruction *def_;  // definition for this input
 };
 
 // The specialized hash function for `unordered_map` keys

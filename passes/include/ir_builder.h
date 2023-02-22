@@ -12,11 +12,6 @@ public:
     ~IrBuilder() override = default;
 
     std::vector<BasicBlock *> GetBlocks() {
-        if (bbs_pointers_.empty()) {
-            std::transform(bbs_holder_.begin(), bbs_holder_.end(), bbs_pointers_.begin(), [](BasicBlock &bb) {
-                return &bb;
-            });
-        }
         return bbs_pointers_;
     }
 
@@ -25,7 +20,6 @@ private:
     void ConnectBasicBlocks();
 
     std::vector<Instruction *> insns_;
-    std::vector<BasicBlock> bbs_holder_;
     BlocksVector bbs_pointers_;
     BlocksVector bbs_in_rpo_;
 };

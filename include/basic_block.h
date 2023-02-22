@@ -1,9 +1,10 @@
 #ifndef OPTIMIZER_BASICBLOCK_H
 #define OPTIMIZER_BASICBLOCK_H
 
+#include <set>
+
 #include "instruction.h"
 #include "marker.h"
-#include <set>
 
 namespace compiler {
 
@@ -12,6 +13,7 @@ class Loop;
 class BasicBlock;
 
 using BlocksVector = std::vector<BasicBlock *>;
+using InsnsVec = std::vector<Instruction *>;
 
 class BasicBlock final {
 public:
@@ -130,6 +132,10 @@ public:
     }
 
     bool IsLoopHeader() const;
+
+    InsnsVec GetAllInstrs();
+
+    std::pair<BasicBlock *, BasicBlock *> SplitOn(Instruction *insn);
 
 private:
     Marker marker_;
