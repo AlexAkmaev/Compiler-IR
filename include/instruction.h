@@ -194,8 +194,6 @@ public:
         return {};
     }
 
-    ~ZeroInputInstr() override = default;
-
 private:
     ZeroInputInstr(Opcode op, InstrType type, size_t id) : InstructionBase(op, type, id) {}
 
@@ -210,20 +208,20 @@ private:
 template<size_t N>
 class FixedInputInstr : public InstructionBase {
 public:
-    virtual ~FixedInputInstr() override = default;
+    virtual ~FixedInputInstr() = default;
 
 protected:
-    template<typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
-    static FixedInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id, Args &&... args) {
-        return FixedInputInstr::Create(alloc, op, type, id, nullptr, nullptr, std::forward<InstrArg>(args)...);
+    template<class Derived, typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
+    static Derived *Create(Allocator *alloc, Opcode op, InstrType type, size_t id, Args &&... args) {
+        return FixedInputInstr::Create<Derived>(alloc, op, type, id, nullptr, nullptr, std::forward<InstrArg>(args)...);
     }
 
-    template<typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
-    static FixedInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
-                                   InstructionBase *prev, InstructionBase *next, Args &&... args) {
-        return alloc->New<FixedInputInstr<N>>(
-                FixedInputInstr<N>(op, type, id, prev, next,
-                                   alloc->NewPoolAsArray<InstrArg>(std::forward<InstrArg>(args)...)));
+    template<class Derived, typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
+    static Derived *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
+                           InstructionBase *prev, InstructionBase *next, Args &&... args) {
+        auto instr = Derived(op, type, id, prev, next);
+        instr.args_ = alloc->NewPoolAsArray<InstrArg>(std::forward<InstrArg>(args)...);
+        return alloc->New<Derived>(std::move(instr));
     }
 
     std::vector<InstrArg *> GetArgs() override {
@@ -234,60 +232,64 @@ protected:
 protected:
     std::array<InstrArg *, N> args_;
 
-private:
-    FixedInputInstr(Opcode op, InstrType type, size_t id, std::array<InstrArg *, N> &&args) : InstructionBase(op,
-                                                                                                              type,
-                                                                                                              id),
-                                                                                              args_(std::move(args)) {}
+protected:
+    FixedInputInstr(Opcode op, InstrType type, size_t id) : InstructionBase(op, type, id) {}
 
-    FixedInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next,
-                    std::array<InstrArg *, N> &&args)
-            : InstructionBase(op, type, id, prev, next), args_(std::move(args)) {}
+    FixedInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
+            : InstructionBase(op, type, id, prev, next) {}
 
 };
 
 class OneInputInstr final : public FixedInputInstr<1> {
 public:
     static OneInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id, InstrArg &&arg) {
-        return static_cast<OneInputInstr *>(
-                FixedInputInstr<1>::Create(alloc, op, type, id, std::forward<InstrArg>(arg)));
+        return OneInputInstr::Create(alloc, op, type, id, nullptr, nullptr, std::forward<InstrArg>(arg));
     }
 
     static OneInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
                                  InstructionBase *prev, InstructionBase *next,
                                  InstrArg &&arg) {
-        return static_cast<OneInputInstr *>(FixedInputInstr<1>::Create(alloc, op, type, id, prev, next,
-                                                                       std::forward<InstrArg>(arg)));
+        return FixedInputInstr::Create<OneInputInstr>(alloc, op, type, id, prev, next,
+                                                      std::forward<InstrArg>(arg));
     }
 
     std::vector<InstrArg *> GetArgs() override {
         assert(args_.size() == 1);
         return {args_.front()};
     }
+
+public:
+    // Not recommended, better use Create methods
+    OneInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
+            : FixedInputInstr<1>(op, type, id, prev, next) {}
 };
 
 class TwoInputInstr final : public FixedInputInstr<2> {
 public:
     static TwoInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
                                  InstrArg &&arg1, InstrArg &&arg2) {
-        return static_cast<TwoInputInstr *>(FixedInputInstr<2>::Create(alloc,
-                                                                       op, type, id, std::forward<InstrArg>(arg1),
-                                                                       std::forward<InstrArg>(arg2)));
+        return TwoInputInstr::Create(alloc, op, type, id, nullptr, nullptr,
+                                     std::forward<InstrArg>(arg1),
+                                     std::forward<InstrArg>(arg2));
     }
 
     static TwoInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
                                  InstructionBase *prev, InstructionBase *next,
                                  InstrArg &&arg1, InstrArg &&arg2) {
-        return static_cast<TwoInputInstr *>(FixedInputInstr<2>::Create(alloc,
-                                                                       op, type, id, prev, next,
-                                                                       std::forward<InstrArg>(arg1),
-                                                                       std::forward<InstrArg>(arg2)));
+        return FixedInputInstr::Create<TwoInputInstr>(alloc, op, type, id, prev, next,
+                                                      std::forward<InstrArg>(arg1),
+                                                      std::forward<InstrArg>(arg2));
     }
 
     std::vector<InstrArg *> GetArgs() override {
         assert(args_.size() == 2);
         return {args_.at(0), args_.at(1)};
     }
+
+public:
+    // Not recommended, better use Create methods
+    TwoInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
+            : FixedInputInstr<2>(op, type, id, prev, next) {}
 };
 
 class ThreeInputInstr final : public FixedInputInstr<3> {
@@ -303,17 +305,21 @@ public:
     static ThreeInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
                                    InstructionBase *prev, InstructionBase *next,
                                    InstrArg &&arg1, InstrArg &&arg2, InstrArg &&arg3) {
-        return static_cast<ThreeInputInstr *>(FixedInputInstr<3>::Create(alloc,
-                                                                         op, type, id, prev, next,
-                                                                         std::forward<InstrArg>(arg1),
-                                                                         std::forward<InstrArg>(arg2),
-                                                                         std::forward<InstrArg>(arg3)));
+        return FixedInputInstr::Create<ThreeInputInstr>(alloc, op, type, id, prev, next,
+                                                        std::forward<InstrArg>(arg1),
+                                                        std::forward<InstrArg>(arg2),
+                                                        std::forward<InstrArg>(arg3));
     }
 
     std::vector<InstrArg *> GetArgs() override {
         assert(args_.size() == 3);
         return {args_.at(0), args_.at(1), args_.at(2)};
     }
+
+public:
+    // Not recommended, better use Create methods
+    ThreeInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
+            : FixedInputInstr<3>(op, type, id, prev, next) {}
 };
 
 }  // namespace compiler

@@ -43,6 +43,7 @@ BasicBlock BasicBlock::MakeBasicBlock(const std::vector<InstructionBase *> &inst
         return bb;
     }
     InstructionBase *prev = instrs.front();
+    assert(prev != nullptr && "prev instruction must not be nullptr");
     bb.SetFirstInstr(prev);
     prev->SetBasicBlock(&bb);
     if (instrs.size() == 1) {
@@ -52,6 +53,7 @@ BasicBlock BasicBlock::MakeBasicBlock(const std::vector<InstructionBase *> &inst
     InstructionBase *curr;
     for (size_t i = 1; i < instrs.size(); ++i) {
         curr = instrs.at(i);
+        assert(curr != nullptr && "curr instruction must not be nullptr");
         prev->SetNext(curr);
         curr->SetPrev(prev);
         curr->SetBasicBlock(&bb);

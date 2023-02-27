@@ -13,16 +13,15 @@ namespace compiler {
 class InstrArg;
 
 class DynamicInputInstr;
-
 class ZeroInputInstr;
-
-template<size_t N>
-class FixedInputInstr;
+class OneInputInstr;
+class TwoInputInstr;
+class ThreeInputInstr;
 
 class BasicBlock;
 
 using Allocator = storage::Allocator<BasicBlock, InstrArg, DynamicInputInstr, ZeroInputInstr,
-        FixedInputInstr<1>, FixedInputInstr<2>, FixedInputInstr<3>>;
+        OneInputInstr, TwoInputInstr, ThreeInputInstr>;
 
 class InstructionBase;
 

@@ -15,9 +15,19 @@ static constexpr bool HasGetIdMethod(...) { return false; }
 template<class C>
 static constexpr bool HasGetIdMethod(int, decltype((std::declval<C>().GetId(float()))) * = 0) { return true; }
 
+constexpr const size_t DEFAULT_RESERVED_SIZE = 1024;
+
 template<class C>
 class Storage final {
 public:
+    Storage() {
+        holder_.reserve(DEFAULT_RESERVED_SIZE);
+    }
+
+    explicit Storage(size_t reserved_size) {
+        holder_.reserve(reserved_size);
+    }
+
     void AddElem(C &&elem) {
         holder_.push_back(std::forward<C>(elem));
     }
@@ -48,6 +58,14 @@ private:
 template<class C>
 class PoolStorage final {
 public:
+    PoolStorage() {
+        holder_.reserve(DEFAULT_RESERVED_SIZE);
+    }
+
+    explicit PoolStorage(size_t reserved_size) {
+        holder_.reserve(reserved_size);
+    }
+
     template<class... T, std::enable_if_t<(std::is_same_v<T, C> && ...), bool> = true>
     void AddPool(T &&... classes) {
         holder_.template emplace_back(std::vector<C>{std::forward<C>(classes)...});
