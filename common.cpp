@@ -3,12 +3,9 @@
 
 namespace compiler {
 
-InstrArg::InstrArg(Type type, vreg_t num, Instruction *target, Graph *graph, Instruction *def) : type_(type), num_(num),
-                                                                                                 target_(target),
-                                                                                                 callee_(graph),
-                                                                                                 def_(def) {
-    if (target_ != nullptr) {
-        target_->SetIsTarget(true);
+InstrArg::InstrArg(Type type, vreg_t num, InstructionBase *ref) : type_(type), num_(num), ref_(ref) {
+    if (type == Type::id) {
+        ref_->SetIsTarget(true);
     }
 }
 

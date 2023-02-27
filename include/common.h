@@ -4,13 +4,33 @@
 #include <cstdint>
 #include <iostream>
 #include <type_traits>
+#include <cassert>
+
+#include "allocator.h"
 
 namespace compiler {
 
-class Instruction;
+class InstrArg;
+
+class DynamicInputInstr;
+
+class ZeroInputInstr;
+
+template<size_t N>
+class FixedInputInstr;
+
+class BasicBlock;
+
+using Allocator = storage::Allocator<BasicBlock, InstrArg, DynamicInputInstr, ZeroInputInstr,
+        FixedInputInstr<1>, FixedInputInstr<2>, FixedInputInstr<3>>;
+
+class InstructionBase;
+
 class Graph;
 
 using vreg_t = uint16_t;
+using BlocksVector = std::vector<BasicBlock *>;
+using InsnsVec = std::vector<InstructionBase *>;
 
 enum class Opcode : uint8_t {
     NONE,
@@ -56,11 +76,20 @@ enum class InstrType : uint8_t {
 
 class InstrArg {
 public:
+    /**
+     * The Type enum represents the type of argument that is constructing.
+     * For `a` and `v` types: `num` means num of a register.
+     * For `imm` type: `num` means the value of immediate.
+     * For `id` type: `num` means the instruction id that corresponds to the target or def instr; or
+     *              : `num` means the graph id that corresponds to the callee graph
+     */
     enum Type {
-        a, v, imm, id, callee  // a - func parameter, v - virtual reg
+        a, v, imm, id, callee_graph  // a - func parameter, v - virtual reg
     };
 
-    InstrArg(Type type, vreg_t num, Instruction* target = nullptr, Graph *graph = nullptr, Instruction *def = nullptr);
+    InstrArg(Type type, vreg_t num, InstructionBase *ref = nullptr);  // ref = target or def
+
+    InstrArg(vreg_t num, Graph *graph) : type_(Type::callee_graph), num_(num), callee_(graph) {}
 
     [[nodiscard]] vreg_t num() const {
         return num_;
@@ -70,31 +99,35 @@ public:
         return type_;
     }
 
-    [[nodiscard]] Instruction *target() const {
-        return target_;
+    [[nodiscard]] InstructionBase *target() const {
+        assert(type_ == Type::id);
+        return ref_;
     }
 
-    [[nodiscard]] Graph *get_callee() const {
+    [[nodiscard]] Graph *callee() const {
+        assert(type_ == Type::callee_graph);
         return callee_;
     }
 
+    [[nodiscard]] InstructionBase *def() const {
+        assert(type_ == Type::a || type_ == Type::v);
+        return ref_;
+    }
+
     bool operator==(const InstrArg &arg) const {
-        return type_ == arg.type_ && num_ == arg.num_ && target_ == arg.target_;
+        return type_ == arg.type_ && num_ == arg.num_ && ref_ == arg.ref_ && callee_ == arg.callee_;
     }
 
 private:
     Type type_;
     size_t num_;  // number of virtual register, or the value of immediate, or the Instruction id of target
-    Instruction *target_;  // id of Instruction to which the jump will happen
-    Graph *callee_;  // callee graph in case if instruction itself is call
-    Instruction *def_;  // definition for this input
+    InstructionBase *ref_{nullptr};  // id of Instruction to which the jump will happen; or a definition for this input
+    Graph *callee_{nullptr};  // callee graph in case if instruction itself is call
 };
 
 // The specialized hash function for `unordered_map` keys
-struct hash_instr_arg
-{
-    std::size_t operator() (const InstrArg &arg) const
-    {
+struct hash_instr_arg {
+    std::size_t operator()(const InstrArg &arg) const {
         std::size_t h1 = std::hash<vreg_t>()(arg.num());
         std::size_t h2 = std::hash<size_t>()(arg.type());
         return h1 ^ h2;

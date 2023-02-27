@@ -1,5 +1,4 @@
 #include "ir_builder.h"
-#include "storage.h"
 
 namespace compiler::passes {
 
@@ -13,7 +12,7 @@ bool IrBuilder::Run() {
 }
 
 void IrBuilder::BuildBasicBlocks() {
-    std::vector<Instruction *> buf;
+    std::vector<InstructionBase *> buf;
     for (auto *insn : insns_) {
         BasicBlock bb;
         if (insn->IsTarget()) {
@@ -28,8 +27,7 @@ void IrBuilder::BuildBasicBlocks() {
             buf.emplace_back(insn);
             continue;
         }
-        bbs_storage.AddElem(std::move(bb));
-        bbs_pointers_.emplace_back(bbs_storage.GetBackPointer());
+        bbs_pointers_.emplace_back(graph_->GetAllocator()->New<BasicBlock>(std::move(bb)));
     }
 
     ConnectBasicBlocks();
@@ -40,14 +38,14 @@ void IrBuilder::ConnectBasicBlocks() {
     for (size_t i = 0; i < bbs_pointers_.size(); ++i) {
         BasicBlock *bb = bbs_pointers_.at(i);
         bb->SetGraph(graph_);
-        Instruction *last_instr = bb->GetLastInstr();
+        InstructionBase *last_instr = bb->GetLastInstr();
         if (last_instr->IsJump() || last_instr->IsConditionalBranch()) {
             auto args = last_instr->GetArgs();
-            if (args.size() != 1 || args.front().target() == nullptr) {
+            if (args.size() != 1 || args.front()->target() == nullptr) {
                 std::cerr << "Error! Wrong instruction format for jump\n";
                 return;
             }
-            BasicBlock *target_bb = args.front().target()->GetBasicBlock();
+            BasicBlock *target_bb = args.front()->target()->GetBasicBlock();
             assert(target_bb != nullptr && "Error! BasicBlock must not be nullptr\n");
             target_bb->SetGraph(graph_);
             BasicBlock::AddEdge(bb, target_bb);

@@ -7,9 +7,10 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(passes)
 
 set(COMPILER_SOURCES
-    graph.cpp
     basic_block.cpp
     common.cpp
+    graph.cpp
+    instruction.cpp
 )
 
 add_library(compiler_lib ${COMPILER_SOURCES})

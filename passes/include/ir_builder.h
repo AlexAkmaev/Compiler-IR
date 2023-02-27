@@ -7,7 +7,7 @@ namespace compiler::passes {
 
 class IrBuilder final : public Pass {
 public:
-    explicit IrBuilder(Graph *graph, std::vector<Instruction *> insns) : Pass(graph), insns_(std::move(insns)) {}
+    explicit IrBuilder(Graph *graph, std::vector<InstructionBase *> insns) : Pass(graph), insns_(std::move(insns)) {}
     bool Run() override;
     ~IrBuilder() override = default;
 
@@ -19,7 +19,7 @@ private:
     void BuildBasicBlocks();
     void ConnectBasicBlocks();
 
-    std::vector<Instruction *> insns_;
+    std::vector<InstructionBase *> insns_;
     BlocksVector bbs_pointers_;
     BlocksVector bbs_in_rpo_;
 };

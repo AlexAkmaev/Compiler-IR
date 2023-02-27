@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "include/storage.h"
+#include "include/allocator.h"
 #include "include/basic_block.h"
 #include "include/graph.h"
 #include "loop.h"
@@ -13,8 +13,8 @@ BasicBlock::BasicBlock(Graph *graph) {
     graph_->IncreaseBlocksNum();
 }
 
-BasicBlock::BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph) : first_instr_(first_instr),
-                                                                            last_instr_(last_instr) {
+BasicBlock::BasicBlock(InstructionBase *first_instr, InstructionBase *last_instr, Graph *graph) : first_instr_(first_instr),
+                                                                                                  last_instr_(last_instr) {
     graph_ = graph;
     id_ = graph_->GetBlocksNum();
     graph_->IncreaseBlocksNum();
@@ -37,19 +37,19 @@ size_t BasicBlock::GetId() {
     return id_.value();
 }
 
-BasicBlock BasicBlock::MakeBasicBlock(const std::vector<Instruction *> &instrs) {
+BasicBlock BasicBlock::MakeBasicBlock(const std::vector<InstructionBase *> &instrs) {
     BasicBlock bb;
     if (instrs.empty()) {
         return bb;
     }
-    Instruction *prev = instrs.front();
+    InstructionBase *prev = instrs.front();
     bb.SetFirstInstr(prev);
     prev->SetBasicBlock(&bb);
     if (instrs.size() == 1) {
         bb.SetLastInstr(prev);
         return bb;
     }
-    Instruction *curr;
+    InstructionBase *curr;
     for (size_t i = 1; i < instrs.size(); ++i) {
         curr = instrs.at(i);
         prev->SetNext(curr);
@@ -85,7 +85,7 @@ bool BasicBlock::IsLoopHeader() const {
 
 InsnsVec BasicBlock::GetAllInstrs() {
     InsnsVec instrs;
-    Instruction *it_instr = first_instr_;
+    InstructionBase *it_instr = first_instr_;
     while (it_instr != nullptr) {
         instrs.push_back(it_instr);
         it_instr = it_instr->GetNext();
@@ -93,20 +93,19 @@ InsnsVec BasicBlock::GetAllInstrs() {
     return instrs;
 }
 
-std::pair<BasicBlock *, BasicBlock *> BasicBlock::SplitOn(Instruction *insn) {
+std::pair<BasicBlock *, BasicBlock *> BasicBlock::SplitOn(InstructionBase *insn) {
     if (insn->GetBasicBlock() != this) {
         std::cerr << "Error! Cannot split basic block on the given instruction.\n";
         return {};
     }
     InsnsVec second_bb_instrs;
-    Instruction *it_instr = insn->GetNext();
+    InstructionBase *it_instr = insn->GetNext();
     while (it_instr != nullptr) {
         second_bb_instrs.push_back(it_instr);
         it_instr = it_instr->GetNext();
     }
     insn->SetNext(nullptr);
-    bbs_storage.AddElem(MakeBasicBlock(second_bb_instrs));
-    BasicBlock *second_bb = bbs_storage.GetBackPointer();
+    BasicBlock *second_bb = graph_->GetAllocator()->New(MakeBasicBlock(second_bb_instrs));
     AddEdge(this, second_bb);
     return std::make_pair(this, second_bb);
 }

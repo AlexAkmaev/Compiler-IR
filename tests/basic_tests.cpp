@@ -27,36 +27,38 @@ TEST(basic_tests, example) {
     constexpr auto imm = InstrArg::Type::imm;
     constexpr auto id = InstrArg::Type::id;
     constexpr auto U64 = InstrType::U64;
+
+    Allocator alloc;
     
     // Creating Graph
+    ThreeInputInstr *addi = ThreeInputInstr::Create(&alloc, Opcode::ADDI, U64, 8, {v, 1}, {v, 1}, {imm, 1});
+    ThreeInputInstr *mul = ThreeInputInstr::Create(&alloc, Opcode::MUL, U64, 9, {v, 0}, {v, 0}, {v, 1});
+    OneInputInstr *ret = OneInputInstr::Create(&alloc, Opcode::RET, U64, 11, {v, 0});  // done label
 
-    Instruction ret{Opcode::RET, U64, {{v, 0}}, 9};  // done label
-    BasicBlock bb3 = BasicBlock::MakeBasicBlock({&ret});
+    TwoInputInstr *movi1 = TwoInputInstr::Create(&alloc, Opcode::MOVI, U64, 0, {v, 0}, {imm, 1});
+    TwoInputInstr *movi2 = TwoInputInstr::Create(&alloc, Opcode::MOVI, U64, 1, {v, 1}, {imm, 2});
+    TwoInputInstr *u32tou64 = TwoInputInstr::Create(&alloc, Opcode::CAST, U64, 2, {v, 2}, {a, 0});
+    BasicBlock bb0 = BasicBlock::MakeBasicBlock({movi1, movi2, u32tou64});
 
-    Instruction movi1{Opcode::MOVI, U64, {{v, 0}, {imm, 1}}, 0};
-    Instruction movi2{Opcode::MOVI, U64, {{v, 1}, {imm, 2}}, 1};
-    Instruction u32tou64{Opcode::CAST, U64, {{v, 2}, {a, 0}}, 2};
-    BasicBlock bb0 = BasicBlock::MakeBasicBlock({&movi1, &movi2, &u32tou64});
+    DynamicInputInstr *phi1 = DynamicInputInstr::Create(&alloc, Opcode::PHI, U64, 3, InstrArg{v, 1, addi},
+                                                        InstrArg{v, 1, movi1});
+    TwoInputInstr *cmp = TwoInputInstr::Create(&alloc, Opcode::CMP, U64, 4, {v, 1}, {v, 2});  // loop label
+    OneInputInstr *ja = OneInputInstr::Create(&alloc, Opcode::JA, U64, 5, {id, 9, ret});  // id = 9 ("done" label)
+    BasicBlock bb1 = BasicBlock::MakeBasicBlock({phi1, cmp, ja});
 
-    PhiInstruction phi1 = PhiInstruction::CreatePhi(U64, 3);
-    Instruction cmp{Opcode::CMP, U64, {{v, 1}, {v, 2}}, 4};  // loop label
-    Instruction ja{Opcode::JA, U64, {{id, 9, &ret}}, 5};  // id = 9 ("done" label)
-    BasicBlock bb1 = BasicBlock::MakeBasicBlock({&phi1, &cmp, &ja});
+    DynamicInputInstr *phi2 = DynamicInputInstr::Create(&alloc, Opcode::PHI, U64, 6, InstrArg{v, 0, mul},
+                                                        InstrArg{v, 0, movi1});
+    OneInputInstr *jmp = OneInputInstr::Create(&alloc, Opcode::JMP, U64, 10, {id, 4, cmp});  // id = 4 ("loop" label)
+    BasicBlock bb2 = BasicBlock::MakeBasicBlock({phi2, mul, addi, jmp});
 
-    PhiInstruction phi2 = PhiInstruction::CreatePhi(U64, 6);
-    Instruction mul{Opcode::MUL, U64, {{v, 0}, {v, 0}, {v, 1}}, 7};
-    Instruction addi{Opcode::ADDI, U64, {{v, 1}, {v, 1}, {imm, 1}}, 8};
-    Instruction jmp{Opcode::JMP, U64, {{id, 4, &cmp}}, 7};  // id = 4 ("loop" label)
-    BasicBlock bb2 = BasicBlock::MakeBasicBlock({&phi2, &mul, &addi, &jmp});
+    BasicBlock bb3 = BasicBlock::MakeBasicBlock({ret});
 
     BasicBlock bb_end = BasicBlock::MakeBasicBlock({});
 
     // Phi funcs
-    phi1.AddDefs({&movi2, &addi});
-    phi1.AddUses({&cmp, &addi});
+    phi1->AddUsers({cmp, addi});
 
-    phi2.AddDefs({&movi1, &mul});
-    phi2.AddUses({&mul, &ret});
+    phi2->AddUsers({mul, ret});
 
     // Blocks CFG
     bb0.AddToSuccs({&bb1});
@@ -72,29 +74,29 @@ TEST(basic_tests, example) {
 
     bb_end.AddToPreds({&bb3});
 
-    Graph graph{&bb0, &bb_end, 1};
+    Graph graph{&alloc, &bb0, &bb_end, 1};
     graph.SetGraphForBasicBlocks({&bb0, &bb1, &bb2, &bb3, &bb_end});
-    
+
     // Testing
 
-    ASSERT_EQ(movi1.GetPrev(), nullptr);
-    ASSERT_EQ(movi1.GetNext(), &movi2);
-    ASSERT_EQ(movi2.GetPrev(), &movi1);
-    ASSERT_EQ(movi2.GetNext(), &u32tou64);
-    ASSERT_EQ(u32tou64.GetPrev(), &movi2);
-    ASSERT_EQ(u32tou64.GetNext(), nullptr);
-    ASSERT_EQ(phi1.GetPrev(), nullptr);
-    ASSERT_EQ(cmp.GetPrev(), &phi1);
-    ASSERT_EQ(cmp.GetNext(), &ja);
-    ASSERT_EQ(ja.GetPrev(), &cmp);
-    ASSERT_EQ(ja.GetNext(), nullptr);
-    ASSERT_EQ(phi2.GetPrev(), nullptr);
-    ASSERT_EQ(mul.GetPrev(), &phi2);
-    ASSERT_EQ(mul.GetNext(), &addi);
-    ASSERT_EQ(addi.GetPrev(), &mul);
-    ASSERT_EQ(addi.GetNext(), &jmp);
-    ASSERT_EQ(jmp.GetPrev(), &addi);
-    ASSERT_EQ(jmp.GetNext(), nullptr);
+    ASSERT_EQ(movi1->GetPrev(), nullptr);
+    ASSERT_EQ(movi1->GetNext(), movi2);
+    ASSERT_EQ(movi2->GetPrev(), movi1);
+    ASSERT_EQ(movi2->GetNext(), u32tou64);
+    ASSERT_EQ(u32tou64->GetPrev(), movi2);
+    ASSERT_EQ(u32tou64->GetNext(), nullptr);
+    ASSERT_EQ(phi1->GetPrev(), nullptr);
+    ASSERT_EQ(cmp->GetPrev(), phi1);
+    ASSERT_EQ(cmp->GetNext(), ja);
+    ASSERT_EQ(ja->GetPrev(), cmp);
+    ASSERT_EQ(ja->GetNext(), nullptr);
+    ASSERT_EQ(phi2->GetPrev(), nullptr);
+    ASSERT_EQ(mul->GetPrev(), phi2);
+    ASSERT_EQ(mul->GetNext(), addi);
+    ASSERT_EQ(addi->GetPrev(), mul);
+    ASSERT_EQ(addi->GetNext(), jmp);
+    ASSERT_EQ(jmp->GetPrev(), addi);
+    ASSERT_EQ(jmp->GetNext(), nullptr);
 
     ASSERT_TRUE(bb0.GetPreds().empty());
     ASSERT_EQ(bb0.GetSuccs().size(), 1);

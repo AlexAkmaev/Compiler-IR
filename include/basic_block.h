@@ -10,23 +10,19 @@ namespace compiler {
 
 class Graph;
 class Loop;
-class BasicBlock;
-
-using BlocksVector = std::vector<BasicBlock *>;
-using InsnsVec = std::vector<Instruction *>;
 
 class BasicBlock final {
 public:
     BasicBlock() = default;
 
-    explicit BasicBlock(Instruction *first_instr, Instruction *last_instr) : first_instr_(first_instr),
-                                                                             last_instr_(last_instr) {}
+    explicit BasicBlock(InstructionBase *first_instr, InstructionBase *last_instr) : first_instr_(first_instr),
+                                                                                     last_instr_(last_instr) {}
 
     explicit BasicBlock(Graph *graph);
 
-    explicit BasicBlock(Instruction *first_instr, Instruction *last_instr, Graph *graph);
+    explicit BasicBlock(InstructionBase *first_instr, InstructionBase *last_instr, Graph *graph);
 
-    static BasicBlock MakeBasicBlock(const std::vector<Instruction *> &instrs);
+    static BasicBlock MakeBasicBlock(const std::vector<InstructionBase *> &instrs);
 
     static std::set<size_t> CollectIds(const BlocksVector &bbs);
 
@@ -38,27 +34,27 @@ public:
         return graph_;
     }
 
-    void SetFirstInstr(Instruction *first_instr) {
+    void SetFirstInstr(InstructionBase *first_instr) {
         first_instr_ = first_instr;
     }
 
-    Instruction *GetFirstInstr() {
+    InstructionBase *GetFirstInstr() {
         return first_instr_;
     }
 
-    void SetLastInstr(Instruction *last_instr) {
+    void SetLastInstr(InstructionBase *last_instr) {
         last_instr_ = last_instr;
     }
 
-    Instruction *GetLastInstr() {
+    InstructionBase *GetLastInstr() {
         return last_instr_;
     }
 
-    void SetFirstPhi(PhiInstruction *first_phi) {
+    void SetFirstPhi(DynamicInputInstr *first_phi) {
         first_phi_ = first_phi;
     }
 
-    PhiInstruction *GetFirstPhi() {
+    DynamicInputInstr *GetFirstPhi() {
         return first_phi_;
     }
 
@@ -135,24 +131,26 @@ public:
 
     InsnsVec GetAllInstrs();
 
-    std::pair<BasicBlock *, BasicBlock *> SplitOn(Instruction *insn);
+    std::pair<BasicBlock *, BasicBlock *> SplitOn(InstructionBase *insn);
+
+    ~BasicBlock() = default;
 
 private:
     Marker marker_;
 
     std::optional<size_t> id_;
 
-    Instruction *first_instr_{nullptr};
-    Instruction *last_instr_{nullptr};
-    PhiInstruction *first_phi_{nullptr};
+    InstructionBase *first_instr_{nullptr};
+    InstructionBase *last_instr_{nullptr};
+    DynamicInputInstr *first_phi_{nullptr};
 
     BlocksVector preds_;
     BlocksVector succs_;
 
     BlocksVector dom_blocks_;
-    BasicBlock *imm_dom_;
+    BasicBlock *imm_dom_{nullptr};
 
-    Graph *graph_;
+    Graph *graph_{nullptr};
 
     Loop *loop_{nullptr};
 };

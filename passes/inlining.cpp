@@ -32,8 +32,8 @@ bool Inlining::IsGraphSuitableForInl(InsnsVec &call_insns) {
     return !call_insns.empty();
 }
 
-void Inlining::DoInlineMethod(Instruction *insn) {
-    Graph *callee = insn->GetArgs().front().get_callee();
+void Inlining::DoInlineMethod(InstructionBase *insn) {
+    Graph *callee = insn->GetArgs().front()->callee();
     assert(callee != nullptr && "Error! Callee graph is null.\n");
 
 

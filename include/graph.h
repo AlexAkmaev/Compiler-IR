@@ -15,11 +15,15 @@ class Traversal;
 
 class Graph final {
 public:
-    Graph() = default;
-    explicit Graph(BasicBlock *root, BasicBlock *end, uint8_t params_num) : root_(root), end_(end),
-                                                                            params_num_(params_num), blocks_num_{2} {
+    Graph(Allocator *alloc) : allocator_(alloc) {}
+    explicit Graph(Allocator *alloc, BasicBlock *root, BasicBlock *end, uint8_t params_num) :
+                    allocator_(alloc), root_(root), end_(end), params_num_(params_num), blocks_num_{2} {
         root->SetId(0);
         end->SetId(1);
+    }
+
+    Allocator *GetAllocator() {
+        return allocator_;
     }
 
     void SetRoot(BasicBlock *root) {
@@ -121,17 +125,19 @@ public:
 
     std::optional<size_t> GetLabelId(const std::string &label);
 
-    void AddTarget(const std::string &label, Instruction *instr);
+    void AddTarget(const std::string &label, InstructionBase *instr);
 
-    std::optional<Instruction *> GetTargetInstr(const std::string &label);
+    std::optional<InstructionBase *> GetTargetInstr(const std::string &label);
 
 private:
+    Allocator *allocator_;
+
     BasicBlock *root_;
     BasicBlock *end_;
     uint8_t params_num_;
     size_t blocks_num_{0};
     std::unordered_map<std::string, size_t> label_table_;
-    std::unordered_map<std::string, Instruction *> jump_table_;
+    std::unordered_map<std::string, InstructionBase *> jump_table_;
 
     bool rpo_valid_{false};
     bool dom_tree_valid_{false};

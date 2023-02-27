@@ -10,7 +10,7 @@ public:
 
 private:
     bool IsGraphSuitableForInl(InsnsVec &call_insns);
-    void DoInlineMethod(Instruction *insn);
+    void DoInlineMethod(InstructionBase *insn);
 
     BlocksVector bbs_in_rpo_;
 

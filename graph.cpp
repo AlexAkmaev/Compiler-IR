@@ -51,11 +51,11 @@ std::optional<size_t> Graph::GetLabelId(const std::string &label) {
     return {};
 }
 
-void Graph::AddTarget(const std::string &label, Instruction *instr) {
+void Graph::AddTarget(const std::string &label, InstructionBase *instr) {
     jump_table_.try_emplace(label, instr);
 }
 
-std::optional<Instruction *> Graph::GetTargetInstr(const std::string &label) {
+std::optional<InstructionBase *> Graph::GetTargetInstr(const std::string &label) {
     auto it = jump_table_.find(label);
     if (it != jump_table_.end()) {
         return jump_table_.at(label);

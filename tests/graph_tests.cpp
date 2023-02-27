@@ -2,6 +2,7 @@
 
 #include "graph.h"
 #include "pass.h"
+#include "loop_analyzer.h"
 
 namespace compiler::test {
 
@@ -22,7 +23,7 @@ uint8_t A = 0, I = 1, B = 2, C = 3, D = 4, E = 5, F = 6, G = 7, H = 8;
 
 class GraphTest : public testing::Test {
 public:
-    GraphTest() {
+    GraphTest() : graph1_(&allocator_), graph2_(&allocator_), graph3_(&allocator_) {
         SetFirstGraph();
         SetSecondGraph();
         SetThirdGraph();
@@ -31,6 +32,10 @@ public:
     virtual void SetUp() {}
 
     virtual void TearDown() {}
+    
+    Allocator *GetAllocator() {
+        return &allocator_;
+    }
 
     void SetFirstGraph() {
         /*
@@ -230,6 +235,8 @@ public:
     }
 
 private:
+    Allocator allocator_;
+
     Graph graph1_;
     Graph graph2_;
     Graph graph3_;
@@ -257,7 +264,7 @@ TEST_F(GraphTest, simple_rpo) {
 
     BasicBlock::AddEdge(&C, &D);
 
-    Graph graph{&A, &D, 0};
+    Graph graph{GetAllocator(), &A, &D, 0};
     graph.SetGraphForBasicBlocks({&A, &B, &C, &D});
     ASSERT_EQ(A.GetId(), 0);
     ASSERT_EQ(B.GetId(), 2);
@@ -723,7 +730,7 @@ TEST_F(GraphTest, Example_4_Loop_Analyzer) {
 
     BasicBlock::AddEdge(&E, &B);
 
-    Graph graph{&A, &C, 0};
+    Graph graph{GetAllocator(), &A, &C, 0};
     graph.SetGraphForBasicBlocks({&A, &B, &C, &D, &E});
 
     EXPECT_EQ(A.GetId(), G4_BB::A);
@@ -791,7 +798,7 @@ TEST_F(GraphTest, Example_5_Loop_Analyzer) {
 
     BasicBlock::AddEdge(&E, &B);
 
-    Graph graph{&A, &F, 0};
+    Graph graph{GetAllocator(), &A, &F, 0};
     graph.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F});
 
     EXPECT_EQ(A.GetId(), G5_BB::A);
@@ -869,7 +876,7 @@ TEST_F(GraphTest, Example_6_Loop_Analyzer) {
 
     BasicBlock::AddEdge(&G, &A);
 
-    Graph graph{&A, &H, 0};
+    Graph graph{GetAllocator(), &A, &H, 0};
     graph.SetGraphForBasicBlocks({&A, &B, &C, &D, &E, &F, &G, &H});
 
     EXPECT_EQ(A.GetId(), G6_BB::A);
