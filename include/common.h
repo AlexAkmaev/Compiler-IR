@@ -59,7 +59,9 @@ enum class Opcode : uint8_t {
     JO,
     JMP,
     CALL,
-    RET
+    RET,
+    RET_VOID,
+    THROW
 };
 
 enum class InstrType : uint8_t {
@@ -83,8 +85,14 @@ public:
      *              : `num` means the graph id that corresponds to the callee graph
      */
     enum Type {
-        a, v, imm, id, callee_graph  // a - func parameter, v - virtual reg
+        acc, a, v, imm, id, callee_graph, none  // acc - accumulator, a - func parameter, v - virtual reg
     };
+
+    InstrArg(Type type) : type_(type) {
+        if (type_ != Type::acc) {
+            std::cerr << "Warning! Must be accumulator type." << std::endl;
+        }
+    }
 
     InstrArg(Type type, vreg_t num, InstructionBase *ref = nullptr);  // ref = target or def
 
@@ -113,14 +121,18 @@ public:
         return ref_;
     }
 
+    void SetDef(InstructionBase *def) {
+        ref_ = def;
+    }
+
     bool operator==(const InstrArg &arg) const {
         return type_ == arg.type_ && num_ == arg.num_ && ref_ == arg.ref_ && callee_ == arg.callee_;
     }
 
 private:
     Type type_;
-    size_t num_;  // number of virtual register, or the value of immediate, or the Instruction id of target
-    InstructionBase *ref_{nullptr};  // id of Instruction to which the jump will happen; or a definition for this input
+    size_t num_{};  // number of virtual register, or the value of immediate, or the Instruction id of target
+    InstructionBase *ref_{nullptr};  // target instruction to which the jump will happen; or a definition for this input
     Graph *callee_{nullptr};  // callee graph in case if instruction itself is call
 };
 

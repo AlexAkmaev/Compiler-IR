@@ -40,7 +40,7 @@ void IrBuilder::ConnectBasicBlocks() {
         bb->SetGraph(graph_);
         InstructionBase *last_instr = bb->GetLastInstr();
         if (last_instr->IsJump() || last_instr->IsConditionalBranch()) {
-            auto args = last_instr->GetArgs();
+            auto args = last_instr->GetInputs();
             if (args.size() != 1 || args.front()->target() == nullptr) {
                 std::cerr << "Error! Wrong instruction format for jump\n";
                 return;

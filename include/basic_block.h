@@ -50,6 +50,17 @@ public:
         return last_instr_;
     }
 
+    void RemoveLastInstr() {
+        if (last_instr_ == nullptr) {
+            std::cerr << "Warning! No instructions in basic block to remove." << std::endl;
+            return;
+        }
+        auto *new_last = last_instr_->GetPrev();
+        new_last->SetNext(nullptr);
+        last_instr_->SetPrev(nullptr);
+        last_instr_ = new_last;
+    }
+
     void SetFirstPhi(DynamicInputInstr *first_phi) {
         first_phi_ = first_phi;
     }
@@ -131,7 +142,12 @@ public:
 
     InsnsVec GetAllInstrs();
 
-    std::pair<BasicBlock *, BasicBlock *> SplitOn(InstructionBase *insn);
+    // Splits this basic block on insn and returns second one bb
+    BasicBlock * SplitOn(InstructionBase *insn);
+
+    void InsertInstrBefore(InstructionBase *bb_instr, InstructionBase *instr);  // insert instr before bb_instr
+
+    void InsertInstrAfter(InstructionBase *bb_instr, InstructionBase *instr);  // insert instr after bb_instr
 
     ~BasicBlock() = default;
 

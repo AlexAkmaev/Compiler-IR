@@ -60,63 +60,67 @@ public:
 
     void RestoreBlock(BasicBlock *bb);
 
-    bool IsRpoValid() const {
+    bool IsRpoValid() const noexcept {
         return rpo_valid_;
     }
 
-    void MakeRpoValid() {
+    void MakeRpoValid() noexcept {
         rpo_valid_ = true;
     }
 
-    void InvalidateRpo() {
+    void InvalidateRpo() noexcept {
         rpo_valid_ = false;
     }
 
-    void SetParamsNum(uint8_t params_num) {
+    void SetParamsNum(uint8_t params_num) noexcept {
         params_num_ = params_num;
     }
 
-    uint8_t GetParamsNum() const {
+    uint8_t GetParamsNum() const noexcept {
         return params_num_;
     }
 
-    void IncreaseBlocksNum() {
+    void IncreaseBlocksNum() noexcept {
         ++blocks_num_;
     }
 
-    void IncreaseBlocksNumOn(uint16_t count) {
+    void IncreaseBlocksNumOn(uint16_t count) noexcept {
         blocks_num_ += count;
     }
 
-    size_t GetBlocksNum() const {
+    size_t GetBlocksNum() const noexcept {
         return blocks_num_;
     }
 
-    bool IsDomTreeValid() const {
+    static size_t GenInstrId() noexcept {
+        return instrs_count_++;
+    }
+
+    bool IsDomTreeValid() const noexcept {
         return dom_tree_valid_;
     }
 
-    void MakeDomTreeValid() {
+    void MakeDomTreeValid() noexcept {
         dom_tree_valid_ = true;
     }
 
-    void InvalidateDomTree() {
+    void InvalidateDomTree() noexcept {
         dom_tree_valid_ = false;
     }
 
-    bool IsLoopAnalysisValid() const {
+    bool IsLoopAnalysisValid() const noexcept {
         return loop_analysis_valid_;
     }
 
-    void MakeLoopAnalysisValid() {
+    void MakeLoopAnalysisValid() noexcept {
         loop_analysis_valid_ = true;
     }
 
-    void InvalidateLoopAnalysis() {
+    void InvalidateLoopAnalysis() noexcept {
         loop_analysis_valid_ = false;
     }
 
-    Loop *GetRootLoop() {
+    Loop *GetRootLoop() noexcept {
         assert(loop_analysis_valid_);
         return root_->GetLoop();
     }
@@ -136,6 +140,7 @@ private:
     BasicBlock *end_;
     uint8_t params_num_;
     size_t blocks_num_{0};
+    static size_t instrs_count_;
     std::unordered_map<std::string, size_t> label_table_;
     std::unordered_map<std::string, InstructionBase *> jump_table_;
 
@@ -143,6 +148,8 @@ private:
     bool dom_tree_valid_{false};
     bool loop_analysis_valid_{false};
 };
+
+size_t Graph::instrs_count_ = 0;
 
 }  // namespace compiler
 

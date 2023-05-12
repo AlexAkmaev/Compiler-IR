@@ -20,23 +20,23 @@ class InstructionBase {
 public:
     Graph *GetGraph();
 
-    Opcode GetOpcode() const {
+    [[nodiscard]] Opcode GetOpcode() const noexcept {
         return op_;
     }
 
-    void SetId(size_t id) {
+    void SetId(size_t id) noexcept {
         id_ = id;
     }
 
-    size_t GetId() {
+    [[nodiscard]] size_t GetId() const noexcept {
         return id_;
     }
 
-    void SetType(InstrType type) {
+    void SetType(InstrType type) noexcept {
         type_ = type;
     }
 
-    InstrType GetType() {
+    [[nodiscard]] InstrType GetType() const noexcept {
         return type_;
     }
 
@@ -44,55 +44,90 @@ public:
         users_.insert(users_.end(), uses.begin(), uses.end());
     }
 
-    std::vector<InstructionBase *> GetUsers() {
+    void AddUsers(std::vector<InstructionBase *> uses) {
+        users_.insert(users_.end(), uses.begin(), uses.end());
+    }
+
+    [[nodiscard]] std::vector<InstructionBase *> GetUsers() const noexcept {
         return users_;
     }
 
-    void SetPrev(InstructionBase *prev) {
+    void RemoveUser(const InstructionBase *instr) {
+        for (auto it = users_.begin(); it != users_.end(); ++it) {
+            if (*it == instr) {
+                users_.erase(it);
+            }
+        }
+    }
+
+    // Replace user that point to this instruction by given instruction.
+    void ReplaceUserForInputs(InstructionBase *new_user) const {
+        assert(new_user != nullptr && new_user != this);
+        for (auto *input_arg: GetInputs()) {
+            auto *input_instr = input_arg->def();
+            const auto &users = input_instr->GetUsers();
+            input_instr->RemoveUser(this);
+            input_instr->AddUsers({new_user});
+        }
+    }
+
+    // Replace inputs that point to this instruction by given instruction.
+    void ReplaceInputForUsers(InstructionBase *new_input) const {
+        assert(new_input != nullptr && new_input != this);
+        for (auto *user: users_) {
+            for (auto *input: user->GetInputs()) {
+                if (input->def() == this) {
+                    input->SetDef(new_input);
+                }
+            }
+        }
+    }
+
+    void SetPrev(InstructionBase *prev) noexcept {
         prev_ = prev;
     }
 
-    InstructionBase *GetPrev() {
+    [[nodiscard]] InstructionBase *GetPrev() const {
         return prev_;
     }
 
-    void SetNext(InstructionBase *next) {
+    void SetNext(InstructionBase *next) noexcept {
         next_ = next;
     }
 
-    InstructionBase *GetNext() {
+    [[nodiscard]] InstructionBase *GetNext() const noexcept {
         return next_;
     }
 
-    void SetBasicBlock(BasicBlock *bb) {
+    void SetBasicBlock(BasicBlock *bb) noexcept {
         bb_ = bb;
     }
 
-    BasicBlock *GetBasicBlock() {
+    [[nodiscard]] BasicBlock *GetBasicBlock() const noexcept {
         return bb_;
     }
 
-    bool IsControlFlow() {
+    [[nodiscard]] bool IsControlFlow() const noexcept {
         return op_ >= Opcode::JA;
     }
 
-    bool IsJump() {
+    [[nodiscard]] bool IsJump() const noexcept {
         return op_ == Opcode::JMP;
     }
 
-    bool IsConditionalBranch() {
+    [[nodiscard]] bool IsConditionalBranch() const noexcept {
         return op_ >= Opcode::JA && op_ <= Opcode::JNE;
     }
 
-    bool IsReturn() {
+    [[nodiscard]] bool IsReturn() const noexcept {
         return op_ == Opcode::RET;
     }
 
-    bool IsCall() {
+    [[nodiscard]] bool IsCall() const {
         return op_ == Opcode::CALL;
     }
 
-    bool IsConstant() {
+    [[nodiscard]] bool IsConstant() const {
         return op_ == Opcode::CONSTANT;
     }
 
@@ -100,29 +135,31 @@ public:
         return op_ == Opcode::PARAMETER;
     }
 
-    bool IsTarget() const {
+    [[nodiscard]] bool IsTarget() const {
         return is_target_;
     }
 
-    void SetIsTarget(bool is_tgt) {
+    void SetIsTarget(bool is_tgt) noexcept {
         is_target_ = is_tgt;
     }
 
-    virtual std::vector<InstrArg *> GetArgs() = 0;
+    [[nodiscard]] InstrArg *GetDst() const noexcept {
+        assert(dst_ != nullptr && "dst location must not be nullptr");
+        return dst_;
+    }
+
+    [[nodiscard]] virtual bool HasInputs() const = 0;
+
+    [[nodiscard]] virtual std::vector<InstrArg *> GetInputs() const = 0;
 
     virtual ~InstructionBase() = default;
 
 protected:
-    explicit InstructionBase(Opcode op) : op_(op) {}
+    explicit InstructionBase(Opcode op);
 
-    InstructionBase(Opcode op, InstrType type, size_t id) : op_(op),
-                                                            type_(type),
-                                                            id_(id) {}
+    InstructionBase(Opcode op, InstrType type, InstrArg *dst);
 
-    InstructionBase(Opcode op, InstrType type, size_t id,
-                    InstructionBase *prev,
-                    InstructionBase *next) : op_(op), type_(type), id_(id), prev_(prev),
-                                             next_(next) {}
+    InstructionBase(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst);
 
 
     Opcode op_{Opcode::NONE};
@@ -134,6 +171,7 @@ protected:
     InstructionBase *next_{nullptr};
 
     std::vector<InstructionBase *> users_;
+    InstrArg *dst_{nullptr};
 
     BasicBlock *bb_{nullptr};
 
@@ -144,61 +182,75 @@ private:
 class DynamicInputInstr final : public InstructionBase {
 public:
     template<typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
-    static DynamicInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id, Args &&... args) {
-        return DynamicInputInstr::Create(alloc, op, type, id, nullptr, nullptr, std::forward<InstrArg>(args)...);
+    static DynamicInputInstr *
+    Create(Allocator *alloc, Opcode op, InstrType type, InstrArg &&dst, Args &&... inputs) {
+        return DynamicInputInstr::Create(alloc, op, type, nullptr, nullptr,
+                                         std::forward<InstrArg>(dst), std::forward<InstrArg>(inputs)...);
     }
 
     template<typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
     static DynamicInputInstr *
-    Create(Allocator *alloc, Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next,
-           Args &&... args) {
+    Create(Allocator *alloc, Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next,
+           InstrArg &&dst, Args &&... inputs) {
         return alloc->New<DynamicInputInstr>(
-                DynamicInputInstr(op, type, id, prev, next, alloc->NewPool<InstrArg>(std::forward<InstrArg>(args)...)));
+                DynamicInputInstr(op, type, prev, next,
+                                  alloc->New<InstrArg>(std::forward<InstrArg>(dst)),
+                                  alloc->NewPool<InstrArg>(std::forward<InstrArg>(inputs)...)));
     }
 
-    void AddArgDefs(std::initializer_list<InstrArg *> args) {
-        args_.insert(args_.end(), args.begin(), args.end());
+    void AddArgDefs(std::initializer_list<InstrArg *> inputs) {
+        inputs_.insert(inputs_.end(), inputs.begin(), inputs.end());
     }
 
-    std::vector<InstrArg *> GetArgs() override {
-        return args_;
+    [[nodiscard]] bool HasInputs() const override {
+        return !inputs_.empty();
     }
 
-    ~DynamicInputInstr() override = default;
+    [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
+        return inputs_;
+    }
+
+    void SetInputs(std::vector<InstrArg *> &&inputs) {
+        inputs_ = std::move(inputs);
+    }
 
 private:
-    DynamicInputInstr(Opcode op, InstrType type, size_t id, std::vector<InstrArg *> &&args) : InstructionBase(op,
-                                                                                                              type,
-                                                                                                              id),
-                                                                                              args_(std::move(args)) {}
+    DynamicInputInstr(Opcode op, InstrType type, InstrArg *dst, std::vector<InstrArg *> &&inputs)
+            : InstructionBase(op, type, dst), inputs_(std::move(inputs)) {}
 
-    DynamicInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next,
-                      std::vector<InstrArg *> &&args)
-            : InstructionBase(op, type, id, prev, next), args_(std::move(args)) {}
+    DynamicInputInstr(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst,
+                      std::vector<InstrArg *> &&inputs)
+            : InstructionBase(op, type, prev, next, dst), inputs_(std::move(inputs)) {}
 
-    std::vector<InstrArg *> args_;
+    std::vector<InstrArg *> inputs_;
 };
 
 class ZeroInputInstr final : public InstructionBase {
 public:
-    static ZeroInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id) {
-        return ZeroInputInstr::Create(alloc, op, type, id, nullptr, nullptr);
+    static ZeroInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, InstrArg &&dst) {
+        return ZeroInputInstr::Create(alloc, op, type, nullptr, nullptr, std::forward<InstrArg>(dst));
     }
 
     static ZeroInputInstr *
-    Create(Allocator *alloc, Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next) {
-        return alloc->New<ZeroInputInstr>(ZeroInputInstr(op, type, id, prev, next));
+    Create(Allocator *alloc, Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next,
+           InstrArg &&dst) {
+        return alloc->New<ZeroInputInstr>(ZeroInputInstr(op, type, prev, next,
+                                                         alloc->New<InstrArg>(std::forward<InstrArg>(dst))));
     }
 
-    std::vector<InstrArg *> GetArgs() override {
+    bool HasInputs() const override {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
         return {};
     }
 
 private:
-    ZeroInputInstr(Opcode op, InstrType type, size_t id) : InstructionBase(op, type, id) {}
+    ZeroInputInstr(Opcode op, InstrType type, InstrArg *dst) : InstructionBase(op, type, dst) {}
 
-    ZeroInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
-            : InstructionBase(op, type, id, prev, next) {}
+    ZeroInputInstr(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst)
+            : InstructionBase(op, type, prev, next, dst) {}
 };
 
 /**
@@ -212,114 +264,133 @@ public:
 
 protected:
     template<class Derived, typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
-    static Derived *Create(Allocator *alloc, Opcode op, InstrType type, size_t id, Args &&... args) {
-        return FixedInputInstr::Create<Derived>(alloc, op, type, id, nullptr, nullptr, std::forward<InstrArg>(args)...);
+    static Derived *Create(Allocator *alloc, Opcode op, InstrType type, InstrArg &&dst, Args &&... inputs) {
+        return FixedInputInstr::Create<Derived>(alloc, op, type, nullptr, nullptr,
+                                                std::forward<InstrArg>(dst),
+                                                std::forward<InstrArg>(inputs)...);
     }
 
     template<class Derived, typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
-    static Derived *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
-                           InstructionBase *prev, InstructionBase *next, Args &&... args) {
-        auto instr = Derived(op, type, id, prev, next);
-        instr.args_ = alloc->NewPoolAsArray<InstrArg>(std::forward<InstrArg>(args)...);
+    static Derived *Create(Allocator *alloc, Opcode op, InstrType type,
+                           InstructionBase *prev, InstructionBase *next, InstrArg &&dst, Args &&... inputs) {
+        static_assert(sizeof...(Args) == N, "Number of arguments does not match array size");
+        auto instr = Derived(op, type, prev, next, alloc->New<InstrArg>(std::forward<InstrArg>(dst)));
+        instr.inputs_ = alloc->NewPoolAsArray<InstrArg>(std::forward<InstrArg>(inputs)...);
         return alloc->New<Derived>(std::move(instr));
     }
 
-    std::vector<InstrArg *> GetArgs() override {
+    [[nodiscard]] bool HasInputs() const override {
+        static_assert(N > 0 && "For N = 0 use ZeroInputInstr");
+        return true;
+    }
+
+    [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
         assert(0 && "Cannot be used for this class");
         return {};
     }
 
-protected:
-    std::array<InstrArg *, N> args_;
+    void SetInputs(std::array<InstrArg *, N> &&inputs) {
+        inputs_ = std::move(inputs);
+    }
 
 protected:
-    FixedInputInstr(Opcode op, InstrType type, size_t id) : InstructionBase(op, type, id) {}
+    std::array<InstrArg *, N> inputs_;
 
-    FixedInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
-            : InstructionBase(op, type, id, prev, next) {}
+protected:
+    FixedInputInstr(Opcode op, InstrType type, InstrArg *dst) : InstructionBase(op, type, dst) {}
+
+    FixedInputInstr(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst)
+            : InstructionBase(op, type, prev, next, dst) {}
 
 };
 
 class OneInputInstr final : public FixedInputInstr<1> {
 public:
-    static OneInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id, InstrArg &&arg) {
-        return OneInputInstr::Create(alloc, op, type, id, nullptr, nullptr, std::forward<InstrArg>(arg));
+    static OneInputInstr *
+    Create(Allocator *alloc, Opcode op, InstrType type, InstrArg &&dst, InstrArg &&arg) {
+        return OneInputInstr::Create(alloc, op, type, nullptr, nullptr,
+                                     std::forward<InstrArg>(dst), std::forward<InstrArg>(arg));
     }
 
-    static OneInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
-                                 InstructionBase *prev, InstructionBase *next,
+    static OneInputInstr *Create(Allocator *alloc, Opcode op, InstrType type,
+                                 InstructionBase *prev, InstructionBase *next, InstrArg &&dst,
                                  InstrArg &&arg) {
-        return FixedInputInstr::Create<OneInputInstr>(alloc, op, type, id, prev, next,
+        return FixedInputInstr::Create<OneInputInstr>(alloc, op, type, prev, next,
+                                                      std::forward<InstrArg>(dst),
                                                       std::forward<InstrArg>(arg));
     }
 
-    std::vector<InstrArg *> GetArgs() override {
-        assert(args_.size() == 1);
-        return {args_.front()};
+    [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
+        assert(inputs_.size() == 1);
+        return {inputs_.front()};
     }
 
 public:
     // Not recommended, better use Create methods
-    OneInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
-            : FixedInputInstr<1>(op, type, id, prev, next) {}
+    OneInputInstr(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst)
+            : FixedInputInstr<1>(op, type, prev, next, dst) {}
 };
 
 class TwoInputInstr final : public FixedInputInstr<2> {
 public:
-    static TwoInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
+    static TwoInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, InstrArg &&dst,
                                  InstrArg &&arg1, InstrArg &&arg2) {
-        return TwoInputInstr::Create(alloc, op, type, id, nullptr, nullptr,
+        return TwoInputInstr::Create(alloc, op, type, nullptr, nullptr,
+                                     std::forward<InstrArg>(dst),
                                      std::forward<InstrArg>(arg1),
                                      std::forward<InstrArg>(arg2));
     }
 
-    static TwoInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
-                                 InstructionBase *prev, InstructionBase *next,
+    static TwoInputInstr *Create(Allocator *alloc, Opcode op, InstrType type,
+                                 InstructionBase *prev, InstructionBase *next, InstrArg &&dst,
                                  InstrArg &&arg1, InstrArg &&arg2) {
-        return FixedInputInstr::Create<TwoInputInstr>(alloc, op, type, id, prev, next,
+        return FixedInputInstr::Create<TwoInputInstr>(alloc, op, type, prev, next,
+                                                      std::forward<InstrArg>(dst),
                                                       std::forward<InstrArg>(arg1),
                                                       std::forward<InstrArg>(arg2));
     }
 
-    std::vector<InstrArg *> GetArgs() override {
-        assert(args_.size() == 2);
-        return {args_.at(0), args_.at(1)};
+    [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
+        assert(inputs_.size() == 2);
+        return {inputs_.at(0), inputs_.at(1)};
     }
 
 public:
     // Not recommended, better use Create methods
-    TwoInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
-            : FixedInputInstr<2>(op, type, id, prev, next) {}
+    TwoInputInstr(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst)
+            : FixedInputInstr<2>(op, type, prev, next, dst) {}
 };
 
 class ThreeInputInstr final : public FixedInputInstr<3> {
 public:
-    static ThreeInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
+    static ThreeInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, InstrArg &&dst,
                                    InstrArg &&arg1, InstrArg &&arg2, InstrArg &&arg3) {
-        return ThreeInputInstr::Create(alloc, op, type, id, nullptr, nullptr,
+        return ThreeInputInstr::Create(alloc, op, type, nullptr, nullptr,
+                                       std::forward<InstrArg>(dst),
                                        std::forward<InstrArg>(arg1),
                                        std::forward<InstrArg>(arg2),
                                        std::forward<InstrArg>(arg3));
     }
 
-    static ThreeInputInstr *Create(Allocator *alloc, Opcode op, InstrType type, size_t id,
-                                   InstructionBase *prev, InstructionBase *next,
+    static ThreeInputInstr *Create(Allocator *alloc, Opcode op, InstrType type,
+                                   InstructionBase *prev, InstructionBase *next, InstrArg &&dst,
                                    InstrArg &&arg1, InstrArg &&arg2, InstrArg &&arg3) {
-        return FixedInputInstr::Create<ThreeInputInstr>(alloc, op, type, id, prev, next,
+        return FixedInputInstr::Create<ThreeInputInstr>(alloc, op, type, prev, next,
+                                                        std::forward<InstrArg>(dst),
                                                         std::forward<InstrArg>(arg1),
                                                         std::forward<InstrArg>(arg2),
                                                         std::forward<InstrArg>(arg3));
     }
 
-    std::vector<InstrArg *> GetArgs() override {
-        assert(args_.size() == 3);
-        return {args_.at(0), args_.at(1), args_.at(2)};
+    [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
+        assert(inputs_.size() == 3);
+        return {inputs_.at(0), inputs_.at(1), inputs_.at(2)};
     }
 
 public:
     // Not recommended, better use Create methods
-    ThreeInputInstr(Opcode op, InstrType type, size_t id, InstructionBase *prev, InstructionBase *next)
-            : FixedInputInstr<3>(op, type, id, prev, next) {}
+    ThreeInputInstr(Opcode op, InstrType type, InstructionBase *prev, InstructionBase *next, InstrArg *dst)
+            : FixedInputInstr<3>(op, type, prev, next, dst) {}
 };
 
 }  // namespace compiler

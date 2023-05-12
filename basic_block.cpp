@@ -95,9 +95,9 @@ InsnsVec BasicBlock::GetAllInstrs() {
     return instrs;
 }
 
-std::pair<BasicBlock *, BasicBlock *> BasicBlock::SplitOn(InstructionBase *insn) {
+BasicBlock *BasicBlock::SplitOn(InstructionBase *insn) {
     if (insn->GetBasicBlock() != this) {
-        std::cerr << "Error! Cannot split basic block on the given instruction.\n";
+        std::cerr << "Error! Cannot split basic block on the instruction that is not from this block.\n";
         return {};
     }
     InsnsVec second_bb_instrs;
@@ -107,9 +107,30 @@ std::pair<BasicBlock *, BasicBlock *> BasicBlock::SplitOn(InstructionBase *insn)
         it_instr = it_instr->GetNext();
     }
     insn->SetNext(nullptr);
+    SetLastInstr(insn);
     BasicBlock *second_bb = graph_->GetAllocator()->New(MakeBasicBlock(second_bb_instrs));
     AddEdge(this, second_bb);
-    return std::make_pair(this, second_bb);
+    return second_bb;
+}
+
+void BasicBlock::InsertInstrBefore(InstructionBase *bb_instr, InstructionBase *instr) {
+    instr->SetBasicBlock(this);
+    if (bb_instr->GetPrev() != nullptr) {
+        bb_instr->GetPrev()->SetNext(instr);
+        instr->SetPrev(bb_instr->GetPrev());
+    }
+    instr->SetNext(bb_instr);
+    bb_instr->SetPrev(instr);
+}
+
+void BasicBlock::InsertInstrAfter(InstructionBase *bb_instr, InstructionBase *instr) {
+    instr->SetBasicBlock(this);
+    if (bb_instr->GetNext() != nullptr) {
+        bb_instr->GetNext()->SetPrev(instr);
+    }
+    instr->SetNext(bb_instr->GetNext());
+    instr->SetPrev(bb_instr);
+    bb_instr->SetNext(instr);
 }
 
 }  // namespace compiler
