@@ -12,6 +12,7 @@ namespace compiler {
 
 class InstrArg;
 
+class InstructionBase;
 class DynamicInputInstr;
 class ZeroInputInstr;
 class OneInputInstr;
@@ -35,6 +36,8 @@ enum class Opcode : uint8_t {
     NONE,
     PHI,
     CAST,
+    STA,
+    LDA,
     CONSTANT,
     PARAMETER,
     ADDI,
@@ -88,11 +91,7 @@ public:
         acc, a, v, imm, id, callee_graph, none  // acc - accumulator, a - func parameter, v - virtual reg
     };
 
-    InstrArg(Type type) : type_(type) {
-        if (type_ != Type::acc) {
-            std::cerr << "Warning! Must be accumulator type." << std::endl;
-        }
-    }
+    InstrArg(InstructionBase *ref = nullptr) : type_(Type::acc), ref_(ref) {}  // For accumulator register only
 
     InstrArg(Type type, vreg_t num, InstructionBase *ref = nullptr);  // ref = target or def
 
@@ -117,7 +116,7 @@ public:
     }
 
     [[nodiscard]] InstructionBase *def() const {
-        assert(type_ == Type::a || type_ == Type::v);
+        assert(type_ == Type::a || type_ == Type::v || type_ == Type::imm || type_ == Type::acc);
         return ref_;
     }
 

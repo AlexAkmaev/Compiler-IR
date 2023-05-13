@@ -102,6 +102,7 @@ BasicBlock *BasicBlock::SplitOn(InstructionBase *insn) {
     }
     InsnsVec second_bb_instrs;
     InstructionBase *it_instr = insn->GetNext();
+    it_instr->SetPrev(nullptr);
     while (it_instr != nullptr) {
         second_bb_instrs.push_back(it_instr);
         it_instr = it_instr->GetNext();
@@ -109,7 +110,8 @@ BasicBlock *BasicBlock::SplitOn(InstructionBase *insn) {
     insn->SetNext(nullptr);
     SetLastInstr(insn);
     BasicBlock *second_bb = graph_->GetAllocator()->New(MakeBasicBlock(second_bb_instrs));
-    AddEdge(this, second_bb);
+    second_bb->SetGraph(graph_);
+    MoveSuccs(second_bb);
     return second_bb;
 }
 
@@ -121,6 +123,9 @@ void BasicBlock::InsertInstrBefore(InstructionBase *bb_instr, InstructionBase *i
     }
     instr->SetNext(bb_instr);
     bb_instr->SetPrev(instr);
+    if (bb_instr == first_instr_) {
+        first_instr_ = instr;
+    }
 }
 
 void BasicBlock::InsertInstrAfter(InstructionBase *bb_instr, InstructionBase *instr) {
@@ -131,6 +136,9 @@ void BasicBlock::InsertInstrAfter(InstructionBase *bb_instr, InstructionBase *in
     instr->SetNext(bb_instr->GetNext());
     instr->SetPrev(bb_instr);
     bb_instr->SetNext(instr);
+    if (bb_instr == last_instr_) {
+        last_instr_ = instr;
+    }
 }
 
 }  // namespace compiler

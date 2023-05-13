@@ -56,7 +56,9 @@ public:
             return;
         }
         auto *new_last = last_instr_->GetPrev();
-        new_last->SetNext(nullptr);
+        if (new_last != nullptr) {
+            new_last->SetNext(nullptr);
+        }
         last_instr_->SetPrev(nullptr);
         last_instr_ = new_last;
     }
@@ -67,6 +69,10 @@ public:
 
     DynamicInputInstr *GetFirstPhi() {
         return first_phi_;
+    }
+
+    void RemoveId() {
+        id_.reset();
     }
 
     void SetId(size_t id) {
@@ -96,8 +102,36 @@ public:
         preds_.insert(preds_.end(), bbs.begin(), bbs.end());
     }
 
+    void AddToPreds(std::vector<BasicBlock *> &&bbs) {
+        preds_ = std::forward<std::vector<BasicBlock *>>(bbs);
+    }
+
+    // Remove all predecessors from this block and add them to specified bb
+    void MovePreds(BasicBlock *bb) {
+        for (auto *pred : preds_) {
+            pred->RemoveFromSuccs(GetId());
+            pred->AddToSuccs({bb});
+        }
+        bb->AddToPreds(std::move(preds_));
+        preds_.clear();
+    }
+
     void AddToSuccs(std::initializer_list<BasicBlock *> bbs) {
         succs_.insert(succs_.end(), bbs.begin(), bbs.end());
+    }
+
+    void AddToSuccs(std::vector<BasicBlock *> &&bbs) {
+        succs_ = std::forward<std::vector<BasicBlock *>>(bbs);
+    }
+
+    // Remove all successors from this block and add them to specified bb
+    void MoveSuccs(BasicBlock *bb) {
+        for (auto *succ : succs_) {
+            succ->RemoveFromPreds(GetId());
+            succ->AddToPreds({bb});
+        }
+        bb->AddToSuccs(std::move(succs_));
+        succs_.clear();
     }
 
     void RemoveFromSuccs(size_t id);

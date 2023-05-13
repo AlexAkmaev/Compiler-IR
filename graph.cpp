@@ -5,6 +5,8 @@
 
 namespace compiler {
 
+size_t Graph::instrs_count_ = 0;
+
 BasicBlock *Graph::FindBlock(size_t id) {
     auto dfs_blocks = passes::Traversal{this}.getDFS(true);
     auto it = std::find_if(dfs_blocks.begin(), dfs_blocks.end(),

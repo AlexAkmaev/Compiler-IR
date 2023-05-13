@@ -53,11 +53,12 @@ public:
     }
 
     void RemoveUser(const InstructionBase *instr) {
-        for (auto it = users_.begin(); it != users_.end(); ++it) {
-            if (*it == instr) {
-                users_.erase(it);
-            }
+        auto it = std::find(users_.begin(), users_.end(), instr);
+        if (it == users_.end()) {
+            std::cerr << "Warning! Try to remove user that doesn't belong to this instruction" << std::endl;
+            return;
         }
+        users_.erase(it);
     }
 
     // Replace user that point to this instruction by given instruction.
@@ -65,7 +66,6 @@ public:
         assert(new_user != nullptr && new_user != this);
         for (auto *input_arg: GetInputs()) {
             auto *input_instr = input_arg->def();
-            const auto &users = input_instr->GetUsers();
             input_instr->RemoveUser(this);
             input_instr->AddUsers({new_user});
         }
@@ -212,6 +212,11 @@ public:
 
     void SetInputs(std::vector<InstrArg *> &&inputs) {
         inputs_ = std::move(inputs);
+    }
+
+    template<typename... Args, std::enable_if_t<(std::is_same_v<Args, InstrArg> && ...), bool> = true>
+    void SetInputs(Allocator *alloc, Args &&... inputs) {
+        inputs_ = alloc->NewPool<InstrArg>(std::forward<InstrArg>(inputs)...);
     }
 
 private:

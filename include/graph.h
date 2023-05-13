@@ -149,8 +149,6 @@ private:
     bool loop_analysis_valid_{false};
 };
 
-size_t Graph::instrs_count_ = 0;
-
 }  // namespace compiler
 
 #endif //OPTIMIZER_GRAPH_H

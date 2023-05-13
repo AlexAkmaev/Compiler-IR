@@ -49,13 +49,13 @@ TEST(basic_tests, example) {
 
     DynamicInputInstr *phi1 = DynamicInputInstr::Create(&alloc, Opcode::PHI, U64, InstrArg{v, 1, addi},
                                                         InstrArg{v, 1, movi1});
-    TwoInputInstr *cmp = TwoInputInstr::Create(&alloc, Opcode::CMP, U64, {acc}, {v, 1, phi1},
+    TwoInputInstr *cmp = TwoInputInstr::Create(&alloc, Opcode::CMP, U64, {/* acc */}, {v, 1, phi1},
                                                {v, 2, u32tou64});  // loop label
     OneInputInstr *ja = OneInputInstr::Create(&alloc, Opcode::JA, U64, {id, 9, ret},
-                                              {acc});  // id = 9 ("done" label)
+                                              {/* acc */});  // id = 9 ("done" label)
     BasicBlock bb1 = BasicBlock::MakeBasicBlock({phi1, cmp, ja});
 
-    DynamicInputInstr *phi2 = DynamicInputInstr::Create(&alloc, Opcode::PHI, U64, {acc}, InstrArg{v, 0, mul},
+    DynamicInputInstr *phi2 = DynamicInputInstr::Create(&alloc, Opcode::PHI, U64, {/* acc */}, InstrArg{v, 0, mul},
                                                         InstrArg{v, 0, movi1});
     ZeroInputInstr *jmp = ZeroInputInstr::Create(&alloc, Opcode::JMP, U64, {id, 4, cmp});  // id = 4 ("loop" label)
     BasicBlock bb2 = BasicBlock::MakeBasicBlock({phi2, mul, addi, jmp});

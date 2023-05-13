@@ -15,6 +15,7 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 set(BASIC_TEST_SOURCES basic_tests.cpp)
 set(GRAPH_TEST_SOURCES graph_tests.cpp)
+set(INLINING_TEST_SOURCES inlining_tests.cpp)
 
 add_executable(basics_tests ${BASIC_TEST_SOURCES})
 target_include_directories(basics_tests
@@ -31,3 +32,11 @@ target_include_directories(graph_tests
 )
 target_link_libraries(graph_tests PRIVATE GTest::GTest passes_lib compiler_lib)
 add_test(graph_tests_gtests graph_tests)
+
+add_executable(inlining_tests ${INLINING_TEST_SOURCES})
+target_include_directories(inlining_tests
+    PUBLIC ${PROJECT_SOURCE_DIR}/include
+    PUBLIC ${PROJECT_SOURCE_DIR}/passes/include
+)
+target_link_libraries(inlining_tests PRIVATE GTest::GTest compiler_lib passes_lib)
+add_test(inlining_tests_gtests inlining_tests)
