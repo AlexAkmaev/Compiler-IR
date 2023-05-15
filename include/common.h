@@ -34,10 +34,16 @@ using InsnsVec = std::vector<InstructionBase *>;
 
 enum class Opcode : uint8_t {
     NONE,
+    NOP,
+    NULL_CHECK,
+    ZERO_CHECK,
+    BOUNDS_CHECK,
     PHI,
     CAST,
     STA,
-    LDA,
+    NEW_ARRAY,
+    LEN_ARRAY,
+    LOAD_ARRAY,
     CONSTANT,
     PARAMETER,
     ADDI,

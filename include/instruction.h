@@ -61,6 +61,27 @@ public:
         users_.erase(it);
     }
 
+    void TryRemoveUser(const InstructionBase *instr) {
+        auto it = std::find(users_.begin(), users_.end(), instr);
+        if (it == users_.end()) {
+            return;
+        }
+        users_.erase(it);
+    }
+
+    void RemoveUsers() {
+        users_.clear();
+    }
+
+    virtual void RemoveInputs() {
+        auto inputs = GetInputs();
+        for (auto *input : inputs) {
+            if (input != nullptr) {
+                RemoveInput(input->def());
+            }
+        }
+    }
+
     // Replace user that point to this instruction by given instruction.
     void ReplaceUserForInputs(InstructionBase *new_user) const {
         assert(new_user != nullptr && new_user != this);
@@ -107,6 +128,27 @@ public:
         return bb_;
     }
 
+    bool IsNextTo(InstructionBase *other) const noexcept;
+
+    bool IsDominatedBy(InstructionBase *other) const noexcept;
+
+    // Remove this instruction from the block, but not with delete function, but by making it nop
+    void MakeNop() {
+        op_ = Opcode::NOP;
+        for (auto *user : users_) {
+            user->TryRemoveInput(this);
+        }
+        for (auto *input : GetInputs()) {
+            input->def()->TryRemoveUser(this);
+        }
+        RemoveUsers();
+        RemoveInputs();
+    }
+
+    [[nodiscard]] bool IsSameOpcode(InstructionBase *other) const noexcept {
+        return other != this && op_ == other->GetOpcode();
+    }
+
     [[nodiscard]] bool IsControlFlow() const noexcept {
         return op_ >= Opcode::JA;
     }
@@ -117,6 +159,14 @@ public:
 
     [[nodiscard]] bool IsConditionalBranch() const noexcept {
         return op_ >= Opcode::JA && op_ <= Opcode::JNE;
+    }
+
+    [[nodiscard]] bool IsBoundsCheck() const noexcept {
+        return op_ == Opcode::BOUNDS_CHECK;
+    }
+
+    [[nodiscard]] bool IsCheck() const noexcept {
+        return op_ == Opcode::NULL_CHECK || op_ == Opcode::ZERO_CHECK || IsBoundsCheck();
     }
 
     [[nodiscard]] bool IsReturn() const noexcept {
@@ -151,6 +201,10 @@ public:
     [[nodiscard]] virtual bool HasInputs() const = 0;
 
     [[nodiscard]] virtual std::vector<InstrArg *> GetInputs() const = 0;
+
+    virtual void RemoveInput(InstructionBase *input) = 0;
+
+    virtual void TryRemoveInput(InstructionBase *input) = 0;
 
     virtual ~InstructionBase() = default;
 
@@ -210,6 +264,31 @@ public:
         return inputs_;
     }
 
+    void RemoveInput(InstructionBase *input) override {
+        auto it = std::find_if(inputs_.begin(), inputs_.end(), [input](InstrArg *arg){
+            return arg->def() == input;
+        });
+        if (it == inputs_.end()) {
+            std::cerr << "Warning! Try to remove input that doesn't belong to this instruction" << std::endl;
+            return;
+        };
+        inputs_.erase(it);
+    }
+
+    void TryRemoveInput(InstructionBase *input) override {
+        auto it = std::find_if(inputs_.begin(), inputs_.end(), [input](InstrArg *arg){
+            return arg->def() == input;
+        });
+        if (it == inputs_.end()) {
+            return;
+        };
+        inputs_.erase(it);
+    }
+
+    void RemoveInputs() override {
+        inputs_.clear();
+    }
+
     void SetInputs(std::vector<InstrArg *> &&inputs) {
         inputs_ = std::move(inputs);
     }
@@ -249,6 +328,14 @@ public:
 
     [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
         return {};
+    }
+
+    void RemoveInput([[maybe_unused]] InstructionBase *input) override {
+        std::cerr << "Warning! Try to remove input in ZeroInputInstr" << std::endl;
+    }
+
+    void TryRemoveInput([[maybe_unused]] InstructionBase *input) override {
+        std::cerr << "Warning! Try to remove input in ZeroInputInstr" << std::endl;
     }
 
 private:
@@ -292,6 +379,27 @@ protected:
     [[nodiscard]] std::vector<InstrArg *> GetInputs() const override {
         assert(0 && "Cannot be used for this class");
         return {};
+    }
+
+    void RemoveInput(InstructionBase *input) override {
+        auto it = std::find_if(inputs_.begin(), inputs_.end(), [input](InstrArg *arg){
+            return arg != nullptr && arg->def() == input;
+        });
+        if (it == inputs_.end()) {
+            std::cerr << "Warning! Try to remove input that doesn't belong to this instruction" << std::endl;
+            return;
+        };
+        *it = nullptr;
+    }
+
+    void TryRemoveInput(InstructionBase *input) override {
+        auto it = std::find_if(inputs_.begin(), inputs_.end(), [input](InstrArg *arg){
+            return arg->def() == input;
+        });
+        if (it == inputs_.end()) {
+            return;
+        };
+        *it = nullptr;
     }
 
     void SetInputs(std::array<InstrArg *, N> &&inputs) {

@@ -42,6 +42,19 @@ public:
         return first_instr_;
     }
 
+    void RemoveFirstInstr() {
+        if (first_instr_ == nullptr) {
+            std::cerr << "Warning! No instructions in basic block to remove." << std::endl;
+            return;
+        }
+        auto *new_first = first_instr_->GetNext();
+        if (new_first != nullptr) {
+            new_first->SetPrev(nullptr);
+        }
+        first_instr_->SetNext(nullptr);
+        first_instr_ = new_first;
+    }
+
     void SetLastInstr(InstructionBase *last_instr) {
         last_instr_ = last_instr;
     }
@@ -61,6 +74,23 @@ public:
         }
         last_instr_->SetPrev(nullptr);
         last_instr_ = new_last;
+    }
+
+    void RemoveInstr(InstructionBase *instr) {
+        assert(instr != nullptr);
+        assert(instr->GetBasicBlock() == this);
+        if (instr == first_instr_) {
+            RemoveFirstInstr();
+            return;
+        }
+        if (instr == last_instr_) {
+            RemoveLastInstr();
+            return;
+        }
+        auto *prev = instr->GetPrev();
+        auto *next = instr->GetNext();
+        prev->SetNext(next);
+        next->SetPrev(prev);
     }
 
     void SetFirstPhi(DynamicInputInstr *first_phi) {

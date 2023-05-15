@@ -19,4 +19,28 @@ InstructionBase::InstructionBase(Opcode op, InstrType type, InstructionBase *pre
                                  InstrArg *dst) : op_(op), type_(type), id_(Graph::GenInstrId()), prev_(prev),
                                                   next_(next), dst_(dst) {}
 
+bool InstructionBase::IsNextTo(InstructionBase *other) const noexcept {
+    assert(other != nullptr && bb_ == other->GetBasicBlock());
+    if (this == other) {
+        return true;
+    }
+    auto prev = GetPrev();
+    while (prev != nullptr) {
+        if (prev == other) {
+            return true;
+        }
+        prev = prev->GetPrev();
+    }
+    return false;
+}
+
+bool InstructionBase::IsDominatedBy(InstructionBase *other) const noexcept {
+    assert(other != nullptr);
+    if (this == other) {
+        return true;
+    }
+    auto other_bb = other->GetBasicBlock();
+    return bb_ == other_bb ? IsNextTo(other) : bb_->IsDominatedBy(other_bb);
+}
+
 }  // namespace compiler

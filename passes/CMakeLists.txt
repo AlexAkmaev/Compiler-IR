@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 set(PASSES_SOURCES
+    check_elimination.cpp
     inlining.cpp
     ir_builder.cpp
     loop_analyzer.cpp
